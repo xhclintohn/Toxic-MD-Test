@@ -177,16 +177,17 @@ let Database = null;
               connectionTimeoutMillis: 10000,
               idleTimeoutMillis: 300000,
               max: 5,
-              min: 1,
+              min: 0,
               allowExitOnIdle: false,
               keepAlive: true,
               keepAliveInitialDelayMillis: 10000
           });
           pool.on('error', (err) => { console.log('⚠️ [PG POOL ERROR]:', err.message); });
-          await Promise.race([
-              pool.query('SELECT 1'),
+          const _pgHealthClient = await Promise.race([
+              pool.connect(),
               new Promise((_, rej) => setTimeout(() => rej(new Error('PG connect timeout')), 20000))
           ]);
+          try { await _pgHealthClient.query('SELECT 1'); } finally { _pgHealthClient.release(); }
           for (const sql of PG_SCHEMA) { try { await pool.query(sql); } catch {} }
           setInterval(() => { pool.query('SELECT 1').catch(() => {}); }, 3 * 60 * 1000);
           _pg = pool;
