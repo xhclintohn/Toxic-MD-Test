@@ -1,18 +1,19 @@
 {
-    "name": "toxic-md",
-    "version": "3.0.0",
-    "description": "Minimal WhatsApp bot",
-    "main": "index.js",
-    "scripts": {
-      "start": "node index.js"
-    },
-    "engines": {
-      "node": ">=20"
-    },
-    "dependencies": {
-      "@hapi/boom": "^10.0.1",
-      "@whiskeysockets/baileys": "npm:toxic-baileys@1.0.6",
-      "express": "^4.21.0",
-      "pino": "^8.19.0"
-    }
+  "name": "toxic-md",
+  "version": "3.0.0",
+  "description": "Minimal WhatsApp bot",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@hapi/boom": "^10.0.1",
+    "@whiskeysockets/baileys": "npm:toxic-baileys@1.0.6",
+    "express": "^4.21.0",
+    "pino": "^8.19.0"
+  }
 }
