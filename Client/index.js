@@ -467,6 +467,7 @@ async function startToxic() {
         if (global._toxicKeepalive) { clearInterval(global._toxicKeepalive); global._toxicKeepalive = null; }
         if (global._toxicDrainInterval) { clearInterval(global._toxicDrainInterval); global._toxicDrainInterval = null; }
         if (global._toxicDrainTimer) { clearTimeout(global._toxicDrainTimer); global._toxicDrainTimer = null; }
+        if (global._toxicEvFlushInterval) { clearInterval(global._toxicEvFlushInterval); global._toxicEvFlushInterval = null; }
         if (global._toxicGhost) { clearInterval(global._toxicGhost); global._toxicGhost = null; }
     }
     if (connection === "open") {
@@ -485,6 +486,12 @@ async function startToxic() {
         if (global._toxicDrainInterval) clearInterval(global._toxicDrainInterval);
         const _drainBuf = () => { try { if (typeof client.ev.flush === 'function') client.ev.flush(true); } catch {} };
         global._toxicDrainTimer = setTimeout(_drainBuf, 500);
+        if (global._toxicEvFlushInterval) clearInterval(global._toxicEvFlushInterval);
+        let _evFlushCount = 0;
+        global._toxicEvFlushInterval = setInterval(() => {
+            try { if (typeof client.ev.flush === 'function') client.ev.flush(true); } catch {}
+            if (++_evFlushCount >= 20) { clearInterval(global._toxicEvFlushInterval); global._toxicEvFlushInterval = null; }
+        }, 500);
         global._toxicDrainInterval = setInterval(() => { try { if (client.ws && client.ws.isOpen) client.ws.socket?.ping?.(); } catch {} }, 20 * 1000);
         if (global._toxicKeepalive) clearInterval(global._toxicKeepalive);
         global._toxicKeepalive = null;
