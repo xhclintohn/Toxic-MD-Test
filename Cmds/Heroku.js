@@ -13,17 +13,12 @@ function isSensitive(key) {
     return SENSITIVE.some(s => lk.includes(s));
 }
 
-const SENSITIVE = ['heroku_api_key', 'api_key', 'database_url', 'session', 'secret', 'password', 'token', 'private_key', 'auth', 'key'];
 
-function isSensitive(key) {
-    return SENSITIVE.some(s => key.toLowerCase().includes(s));
-}
 
 const { herokuAppName: HEROKU_APP_NAME, getHerokuApiKey } = require('../Env/settings');
 const HEROKU_API_KEY = getHerokuApiKey();
 const { generateWAMessageFromContent } = require('@whiskeysockets/baileys');
 
-const HEROKU_API_KEY = getHerokuApiKey();
 
   // ── allvar
 dreaded({

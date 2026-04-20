@@ -17,7 +17,6 @@ const { uploadToUrl } = require('../lib/toUrl');
   ];
 let canvacord = null; try { canvacord = require("canvacord"); } catch {}
   const { makePhotoEdit } = require('../lib/toxicApi');
-const fs = require('fs');
 const { exec } = require('child_process');
 const { tmpdir } = require('os');
   const { makeRC } = require('../lib/toxicApi');
@@ -58,14 +57,9 @@ async function uploadImage(buffer) {
 }
 
 async function uploadToCatbox(buffer) {
-    const form = new FormData();
     form.append('reqtype', 'fileupload');
     form.append('fileToUpload', buffer, { filename: 'image.png' });
 
-    const response = await axios.post('https://catbox.moe/user/api.php', form, {
-        headers: form.getHeaders(),
-        timeout: 30000
-    });
 
     if (!response.data || !response.data.includes('catbox')) {
         throw new Error('UPLOAD FAILED');
@@ -74,37 +68,7 @@ async function uploadToCatbox(buffer) {
     return response.data;
 }
 
-async function uploadToCatbox(buffer) {
-    const form = new FormData();
-    form.append('reqtype', 'fileupload');
-    form.append('fileToUpload', buffer, { filename: 'image.png' });
-    const response = await axios.post('https://catbox.moe/user/api.php', form, { headers: form.getHeaders() });
-    if (!response.data || !response.data.includes('catbox')) throw new Error('Upload Refused');
-    return response.data;
-}
 
-async function uploadImage(buffer) {
-    const tempFilePath = path.join(__dirname, `temp_${Date.now()}.jpg`);
-    fs.writeFileSync(tempFilePath, buffer);
-
-    const form = new FormData();
-    form.append('files[]', fs.createReadStream(tempFilePath));
-
-    try {
-        const response = await axios.post('https://qu.ax/upload.php', form, {
-            headers: form.getHeaders(),
-        });
-
-        const link = response.data?.files?.[0]?.url;
-        if (!link) throw new Error('No URL returned in response');
-
-        fs.unlinkSync(tempFilePath);
-        return { url: link };
-    } catch (error) {
-        if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
-        throw new Error(`Upload error: ${error.message}`);
-    }
-}
 const fetch = require("node-fetch");
 
 function emojiToTwemojiUrl(emoji) {
@@ -115,10 +79,8 @@ function emojiToTwemojiUrl(emoji) {
 }
 const { Sticker, createSticker, StickerTypes } = require('wa-sticker-formatter')
 
-let canvacord = null; try { canvacord = require("canvacord"); } catch {}
 
 
-let canvacord = null; try { canvacord = require("canvacord"); } catch {}
 
   // ── brat
 dreaded({

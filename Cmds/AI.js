@@ -9,7 +9,6 @@ const axios = require("axios");
 const { GROQ_API_KEY } = require('../keys');
 const { uploadToUrl } = require('../lib/toUrl');
   const { enhanceImage } = require('../lib/toxicApi');
-const axios = require('axios');
 const FormData = require('form-data');
 const crypto = require('crypto');
 

@@ -24,10 +24,6 @@ const resolveTarget = (jid, participants) => {
         if (match) return (match.jid || match.id).split(':')[0].split('@')[0].replace(/\D/g, '') + '@s.whatsapp.net';
         return user + '@s.whatsapp.net';
     }
-    const match = participants.find(p => {
-        const pid = (p.jid || p.id || '').split('@')[0].split(':')[0].replace(/\D/g, '');
-        return pid === user || pid.endsWith(user) || user.endsWith(pid);
-    });
     if (match) return (match.jid || match.id).split(':')[0].split('@')[0].replace(/\D/g, '') + '@s.whatsapp.net';
     return user + '@s.whatsapp.net';
 };
@@ -61,21 +57,11 @@ const fs = require('fs').promises;
       return input;
   }
 
-const normalizeNumber = (jid) => {
-    if (!jid) return '';
-    return jid.split('@')[0].split(':')[0].replace(/\D/g, '') + '@s.whatsapp.net';
-};
 
-const DEVELOPER = normalizeNumber('254114885159');
-const MAX_TEXT_SIZE = 3000;
 const FEATURES_DIR = path.join(__dirname, '..', '..', 'features');
 const middleware = require('../lib/middleware');
 const DEVELOPER_NUMBER = "254114885159";
 
-const normalizeNumber = (jid) => {
-    if (!jid) return '';
-    return jid.split('@')[0].split(':')[0].replace(/\D/g, '');
-};
 
 const findDevInGroup = (participants) => {
     return participants.find(p => {
@@ -130,7 +116,6 @@ const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
 
 const toBlockJid = (jid) => {
     if (!jid) return null;
-    const user = jid.split('@')[0].split(':')[0].replace(/\D/g, '');
     if (!user) return null;
     return user + '@s.whatsapp.net';
 };

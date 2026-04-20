@@ -151,8 +151,6 @@ const ROASTS = [
     "You're a walking 'could've been' story.",
     "Even autocorrect gave up on fixing your messages.",
 ];
-const axios = require("axios");
-const fetch = require("node-fetch");
 const { randomUUID } = require('crypto');
 const { translate } = require('@vitalets/google-translate-api');
 

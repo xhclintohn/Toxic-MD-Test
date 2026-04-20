@@ -12,10 +12,8 @@ const cheerio = require('cheerio');
 const QRCode = require('qrcode');
 const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
 const fsPromises = require('fs').promises;
-const fs = require('fs');
 const os = require('os');
 const FormData = require('form-data');
-const fetch = require("node-fetch");
 const { queue } = require('async');
 /*
 

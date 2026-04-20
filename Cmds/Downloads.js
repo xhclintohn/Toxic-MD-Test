@@ -9,42 +9,19 @@ const { getFakeQuoted } = require('../lib/fakeQuoted');
       const m = url.match(new RegExp('(?:youtu\\.be/|youtube\\.com/(?:watch\\?v=|shorts/|embed/|v/))([A-Za-z0-9_-]{11})'));
       return m ? m[1] : null;
   }
-  const NEXRAY = 'https://api.nexray.web.id/downloader/bilibili?url=';
 const axios = require('axios');
-  const NEXRAY = 'https://api.nexray.web.id/downloader/facebook?url=';
-const fetch = require("node-fetch");
-  const NEXRAY = 'https://api.nexray.web.id/downloader/v2/instagram?url=';
 
   const GCSE_KEY = 'AIzaSyDMbI3nvmQUrfjoCJYLS69Lej1hSXQjnWI';
   const GCSE_CX  = 'baf9bdb0c631236e5';
 const acrcloud = require("acrcloud");
-  const NEXRAY = 'https://api.nexray.web.id/downloader/snackvideo?url=';
-  const NEXRAY = 'https://api.nexray.web.id/downloader/soundcloud?url=';
-  const NEXRAY = 'https://api.nexray.web.id/downloader/threads?url=';
-  const NEXRAY = 'https://api.nexray.web.id/downloader/tiktok?url=';
-  const NEXRAY = 'https://api.nexray.web.id/downloader/twitter?url=';
 const { generateWAMessageFromContent, proto } = require('@whiskeysockets/baileys');
   const { uploadToUrl } = require('../lib/toUrl');
 const yts = require("yt-search");
   const NEXRAY_MP3 = 'https://api.nexray.web.id/downloader/ytmp3?url=';
   const NEXRAY_MP4 = 'https://api.nexray.web.id/downloader/ytmp4?url=';
 
-  function extractYtId(url) {
-      const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|shorts\/|embed\/|v\/))([A-Za-z0-9_-]{11})/);
-      return m ? m[1] : null;
-  }
-  const NEXRAY_MP3 = 'https://api.nexray.web.id/downloader/ytmp3?url=';
 
-  function extractYtId(url) {
-      const m = url.match(new RegExp('(?:youtu\\.be/|youtube\\.com/(?:watch\\?v=|shorts/|embed/|v/))([A-Za-z0-9_-]{11})'));
-      return m ? m[1] : null;
-  }
-  const NEXRAY_MP4 = 'https://api.nexray.web.id/downloader/ytmp4?url=';
 
-  function extractYtId(url) {
-      const m = url.match(new RegExp('(?:youtu\\.be/|youtube\\.com/(?:watch\\?v=|shorts/|embed/|v/))([A-Za-z0-9_-]{11})'));
-      return m ? m[1] : null;
-  }
 
   function fmtDuration(secs) {
       const s = parseInt(secs) || 0;

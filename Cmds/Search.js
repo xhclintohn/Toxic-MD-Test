@@ -20,20 +20,17 @@ async function githubUserStalk(user) {
 }
 
 async function githubRepoSearch(query) {
-    const response = await fetch(`https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&sort=stars&order=desc`, { headers: getHeaders() });
     if (!response.ok) throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
     return response.json();
 }
 
 async function githubCodeSearch(query) {
-    const response = await fetch(`https://api.github.com/search/code?q=${encodeURIComponent(query)}`, { headers: getHeaders() });
     if (!response.ok) throw new Error(`GitHub API error: ${response.status}`);
     return response.json();
 }
 
 async function githubTrending() {
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    const response = await fetch(`https://api.github.com/search/repositories?q=created:>${weekAgo}&sort=stars&order=desc`, { headers: getHeaders() });
     if (!response.ok) throw new Error(`GitHub API error: ${response.status}`);
     return response.json();
 }
@@ -524,6 +521,35 @@ dreaded({
     }
   });
 
+
+async function fetchWallpapers(query) {
+  const searchUrl = `https://www.uhdpaper.com/search?q=${encodeURIComponent(query)}&by-date=true`;
+
+  const { data } = await axios.get(searchUrl, {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36"
+    },
+    timeout: 30000
+  });
+
+  const $ = cheerio.load(data);
+  const results = [];
+
+  $('.post-outer').each((_, el) => {
+    const title = $(el).find('h2').text().trim() || null;
+    const resolution = $(el).find('b').text().trim() || null;
+    let image = $(el).find('img').attr('data-src') || $(el).find('img').attr('src');
+    if (image && image.startsWith('//')) image = 'https:' + image;
+    const description = $(el).find('p').text().trim() || null;
+    const link = $(el).find('a').attr('href');
+    if (image) {
+      results.push({ title, resolution, image, description, source: 'uhdpaper.com', link: link ? 'https://www.uhdpaper.com' + link : null });
+    }
+  });
+
+  return results;
+}
+
 // ── wallpaper
 dreaded({
   pattern: "wallpaper",
@@ -586,33 +612,6 @@ dreaded({
   }
 };
 
-async function fetchWallpapers(query) {
-  const searchUrl = `https://www.uhdpaper.com/search?q=${encodeURIComponent(query)}&by-date=true`;
-
-  const { data } = await axios.get(searchUrl, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36"
-    },
-    timeout: 30000
-  });
-
-  const $ = cheerio.load(data);
-  const results = [];
-
-  $('.post-outer').each((_, el) => {
-    const title = $(el).find('h2').text().trim() || null;
-    const resolution = $(el).find('b').text().trim() || null;
-    let image = $(el).find('img').attr('data-src') || $(el).find('img').attr('src');
-    if (image && image.startsWith('//')) image = 'https:' + image;
-    const description = $(el).find('p').text().trim() || null;
-    const link = $(el).find('a').attr('href');
-    if (image) {
-      results.push({ title, resolution, image, description, source: 'uhdpaper.com', link: link ? 'https://www.uhdpaper.com' + link : null });
-    }
-  });
-
-  return results;
-});
 
 // ── wiki
 dreaded({

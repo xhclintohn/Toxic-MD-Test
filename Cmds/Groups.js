@@ -67,19 +67,13 @@ const resolveTarget = (jid, participants) => {
         if (match) return (match.jid || match.id).split(':')[0].split('@')[0].replace(/\D/g, '') + '@s.whatsapp.net';
         return null;
     }
-    const match = participants.find(p => {
-        const pid = (p.jid || p.id || '').split('@')[0].split(':')[0].replace(/\D/g, '');
-        return pid === user || pid.endsWith(user) || user.endsWith(pid);
-    });
     if (match) return (match.jid || match.id).split(':')[0].split('@')[0].replace(/\D/g, '') + '@s.whatsapp.net';
     return user + '@s.whatsapp.net';
 };
 
 const BOX = (title, lines) => {
-    const body = (Array.isArray(lines) ? lines : [lines]).map(l => `├ ${l}`).join('\n');
     return `╭───(    TOXIC-MD    )───\n├───≫ ${title} ≪───\n├\n${body}\n╰──────────────────☉\n> ©𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐁𝐲 𝐱𝐡_𝐜𝐥𝐢𝐧𝐭𝐨𝐧`;
 };
-const middleware = require("../lib/middleware");
 const { getGroupSettings, updateGroupSetting } = require('../Database/config');
 const { getSettings } = require('../Database/config');
 
@@ -104,10 +98,6 @@ const GH_REPO  = 'Toxic-v2';
 const GH_BRANCH = 'main';
 const GH_ASSET_DIR = 'assets/reactions';
 
-const BOX = (title, lines) => {
-    const body = (Array.isArray(lines) ? lines : [lines]).map(l => `├ ${l}`).join('\n');
-    return `╭───(    TOXIC-MD    )───\n├───≫ ${title} ≪───\n├\n${body}\n╰──────────────────☉\n> ©𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐁𝐲 𝐱𝐡_𝐜𝐥𝐢𝐧𝐭𝐨𝐧`;
-};
 
 async function ghApiPut(token, path, body) {
     return new Promise((resolve, reject) => {
@@ -138,19 +128,6 @@ async function ghApiPut(token, path, body) {
 
 async function ghApiGet(token, path) {
     return new Promise((resolve, reject) => {
-        const req = https.request({
-            hostname: 'api.github.com',
-            path: `/repos/${GH_OWNER}/${GH_REPO}/contents/${path}`,
-            method: 'GET',
-            headers: { 'Authorization': `token ${token}`, 'User-Agent': 'Toxic-MD-Bot' }
-        }, (res) => {
-            let raw = '';
-            res.on('data', c => raw += c);
-            res.on('end', () => {
-                try { resolve({ status: res.statusCode, body: JSON.parse(raw) }); }
-                catch { resolve({ status: res.statusCode, body: {} }); }
-            });
-        });
         req.on('error', reject);
         req.end();
     });
@@ -159,34 +136,7 @@ const path = require('path');
 const { getWarnCount, addWarn, resetWarn, getGroupSettings } = require('../Database/config');
 const { getWarnCount, getWarnLimit } = require('../Database/config');
 
-const getMentionedJid = (m) => {
-    if (m.msg?.contextInfo?.mentionedJid?.length > 0) return m.msg.contextInfo.mentionedJid[0];
-    if (m.message?.extendedTextMessage?.contextInfo?.mentionedJid?.length > 0) return m.message.extendedTextMessage.contextInfo.mentionedJid[0];
-    if (m.quoted?.mentionedJid?.length > 0) return m.quoted.mentionedJid[0];
-    if (m.quoted?.contextInfo?.mentionedJid?.length > 0) return m.quoted.contextInfo.mentionedJid[0];
-    return null;
-};
 
-const resolveTarget = (jid, participants) => {
-    if (!jid) return null;
-    const server = (jid.split('@')[1] || '').toLowerCase();
-    const user = jid.split('@')[0].split(':')[0].replace(/\D/g, '');
-    if (!user) return null;
-    if (server === 'lid') {
-        const match = participants.find(p => {
-            const lid = (p.id || '').split('@')[0].split(':')[0].replace(/\D/g, '');
-            return lid === user;
-        });
-        if (match) return (match.jid || match.id).split(':')[0].split('@')[0].replace(/\D/g, '') + '@s.whatsapp.net';
-        return null;
-    }
-    const match = participants.find(p => {
-        const pid = (p.jid || p.id || '').split('@')[0].split(':')[0].replace(/\D/g, '');
-        return pid === user || pid.endsWith(user) || user.endsWith(pid);
-    });
-    if (match) return (match.jid || match.id).split(':')[0].split('@')[0].replace(/\D/g, '') + '@s.whatsapp.net';
-    return user + '@s.whatsapp.net';
-};
 
   // ── add
 dreaded({
