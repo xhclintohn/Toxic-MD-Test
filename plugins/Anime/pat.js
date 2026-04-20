@@ -1,0 +1,24 @@
+const { getAnime } = require('../../lib/toxicApi');
+const { getFakeQuoted } = require('../../lib/fakeQuoted');
+
+module.exports = {
+    name: 'pat',
+    aliases: ['headpat', 'animepat'],
+    description: 'Send a headpat anime gif',
+    run: async (context) => {
+        const { client, m } = context;
+        const fq = getFakeQuoted(m);
+        try {
+            await client.sendMessage(m.chat, { react: { text: '⌛', key: m.key } });
+            const url = await getAnime('pat');
+            await client.sendMessage(m.chat, { react: { text: '✅', key: m.key } });
+            await client.sendMessage(m.chat, {
+                image: { url },
+                caption: '╭───(    TOXIC-MD    )───\n├───≫ Pᴀᴛ ≪───\n╰──────────────────☉\n> ©𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐁𝐲 𝐱𝐡_𝐜𝐥𝐢𝐧𝐭𝐨𝐧'
+            }, { quoted: fq });
+        } catch (error) {
+            await client.sendMessage(m.chat, { react: { text: '❌', key: m.key } });
+            await m.reply('╭───(    TOXIC-MD    )───\n├───≫ Eʀʀᴏʀ ≪───\n├ \n├ No pats available!\n╰──────────────────☉\n> ©𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐁𝐲 𝐱𝐡_𝐜𝐥𝐢𝐧𝐭𝐨𝐧');
+        }
+    }
+};

@@ -1,0 +1,24 @@
+const { getAnime } = require('../../lib/toxicApi');
+const { getFakeQuoted } = require('../../lib/fakeQuoted');
+
+module.exports = {
+    name: 'smug',
+    aliases: ['animesmug', 'smugface'],
+    description: 'Send a smug anime face',
+    run: async (context) => {
+        const { client, m } = context;
+        const fq = getFakeQuoted(m);
+        try {
+            await client.sendMessage(m.chat, { react: { text: '⌛', key: m.key } });
+            const url = await getAnime('smug');
+            await client.sendMessage(m.chat, { react: { text: '✅', key: m.key } });
+            await client.sendMessage(m.chat, {
+                image: { url },
+                caption: '╭───(    TOXIC-MD    )───\n├───≫ Sᴍᴜɢ ≪───\n╰──────────────────☉\n> ©𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐁𝐲 𝐱𝐡_𝐜𝐥𝐢𝐧𝐭𝐨𝐧'
+            }, { quoted: fq });
+        } catch (error) {
+            await client.sendMessage(m.chat, { react: { text: '❌', key: m.key } });
+            await m.reply('╭───(    TOXIC-MD    )───\n├───≫ Eʀʀᴏʀ ≪───\n├ \n├ Smug unavailable!\n╰──────────────────☉\n> ©𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐁𝐲 𝐱𝐡_𝐜𝐥𝐢𝐧𝐭𝐨𝐧');
+        }
+    }
+};

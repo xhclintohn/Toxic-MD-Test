@@ -1,0 +1,24 @@
+const { getAnime } = require('../../lib/toxicApi');
+const { getFakeQuoted } = require('../../lib/fakeQuoted');
+
+module.exports = {
+    name: 'shinobu',
+    aliases: ['shinobukocho', 'demonslayergirl'],
+    description: 'Get a random Shinobu anime image',
+    run: async (context) => {
+        const { client, m } = context;
+        const fq = getFakeQuoted(m);
+        try {
+            await client.sendMessage(m.chat, { react: { text: '⌛', key: m.key } });
+            const url = await getAnime('shinobu');
+            await client.sendMessage(m.chat, { react: { text: '✅', key: m.key } });
+            await client.sendMessage(m.chat, {
+                image: { url },
+                caption: '╭───(    TOXIC-MD    )───\n├───≫ Sʜɪɴᴏʙᴜ ≪───\n╰──────────────────☉\n> ©𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐁𝐲 𝐱𝐡_𝐜𝐥𝐢𝐧𝐭𝐨𝐧'
+            }, { quoted: fq });
+        } catch (error) {
+            await client.sendMessage(m.chat, { react: { text: '❌', key: m.key } });
+            await m.reply('╭───(    TOXIC-MD    )───\n├───≫ Eʀʀᴏʀ ≪───\n├ \n├ Shinobu vanished!\n╰──────────────────☉\n> ©𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐁𝐲 𝐱𝐡_𝐜𝐥𝐢𝐧𝐭𝐨𝐧');
+        }
+    }
+};
