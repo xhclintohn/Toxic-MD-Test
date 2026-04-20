@@ -175,6 +175,7 @@ module.exports = toxic = async (client, m, chatUpdate, store) => {
         const _fmBody = (m.text || m.body || m.message?.conversation || m.message?.extendedTextMessage?.text || '').trim();
         if (!_fmBody || !_allPfx.some(p => _fmBody.startsWith(p))) return;
     }
+    console.log('[TOXIC MSG] rcv | sender:', m.sender, '| body:', (m.body || '').slice(0, 60));
     try {
         const rawSudoUsers = getCachedSudoSync();
         const rawBannedUsers = getCachedBannedSync();
@@ -640,6 +641,7 @@ module.exports = toxic = async (client, m, chatUpdate, store) => {
         })().catch(() => {});
 
         if (cmd && typeof cmd === 'function') {
+            console.log('[TOXIC CMD] exec:', resolvedCommandName, '| sender:', m.sender);
             const _origSend = client.sendMessage.bind(client);
             const _autoFqSend = async (jid, content, opts = {}) => {
                 if (jid === m.chat && !opts.quoted &&
