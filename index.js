@@ -87,18 +87,15 @@ async function connect() {
         }
     });
 
-    // ─── FIXED Message handler ───────────────────────────────────
+    // ─── FIXED Message handler with proper text extraction ───────────────────
     client.ev.on('messages.upsert', async (messageData) => {
         try {
             const { messages, type } = messageData;
             
-            // Log to debug
-            console.log('[Toxic-MD] Message received, type:', type);
-            
-            if (type !== 'notify' && type !== 'append') return;
+            if (type !== 'notify') return;
             
             const msg = messages[0];
-            if (!msg || !msg.message || !msg.key) return;
+            if (!msg || !msg.key) return;
             
             // Don't respond to own messages
             if (msg.key.fromMe) return;
@@ -106,40 +103,47 @@ async function connect() {
             const from = msg.key.remoteJid;
             if (!from) return;
             
-            // Extract text properly
+            // PROPER text extraction - Baileys stores message in different places
             let body = '';
-            if (msg.message.conversation) {
-                body = msg.message.conversation;
-            } else if (msg.message.extendedTextMessage && msg.message.extendedTextMessage.text) {
-                body = msg.message.extendedTextMessage.text;
-            } else if (msg.message.imageMessage && msg.message.imageMessage.caption) {
-                body = msg.message.imageMessage.caption;
-            } else if (msg.message.videoMessage && msg.message.videoMessage.caption) {
-                body = msg.message.videoMessage.caption;
+            
+            // Try all possible message types
+            if (msg.message) {
+                // Direct conversation
+                if (msg.message.conversation) {
+                    body = msg.message.conversation;
+                }
+                // Extended text message
+                else if (msg.message.extendedTextMessage) {
+                    body = msg.message.extendedTextMessage.text || '';
+                }
+                // For image/video with caption
+                else if (msg.message.imageMessage) {
+                    body = msg.message.imageMessage.caption || '';
+                }
+                else if (msg.message.videoMessage) {
+                    body = msg.message.videoMessage.caption || '';
+                }
+                // For protocol messages (sometimes contains text)
+                else if (msg.message.protocolMessage) {
+                    return; // Skip protocol messages
+                }
             }
             
-            console.log('[Toxic-MD] Message body:', body);
+            console.log('[Toxic-MD] Raw body:', body);
             
             if (!body || !body.startsWith(PREFIX)) return;
             
-            const cmd = body.slice(PREFIX.length).trim().split(/\s+/)[0].toLowerCase();
-            console.log('[Toxic-MD] Command:', cmd);
+            const command = body.slice(PREFIX.length).trim().split(/\s+/)[0].toLowerCase();
+            console.log('[Toxic-MD] Command detected:', command);
             
-            if (cmd === 'ping') {
-                console.log('[Toxic-MD] Sending pong to:', from);
-                await client.sendMessage(from, {
-                    text: '🏓 Pong!'
-                });
-                console.log('[Toxic-MD] Pong sent');
+            if (command === 'ping') {
+                console.log('[Toxic-MD] Responding to ping from:', from);
+                await client.sendMessage(from, { text: '🏓 Pong!' });
+                console.log('[Toxic-MD] Response sent');
             }
         } catch (error) {
-            console.error('[Toxic-MD] Message handler error:', error);
+            console.error('[Toxic-MD] Error in message handler:', error);
         }
-    });
-    
-    // Add additional event listener for debugging
-    client.ev.on('messaging-history.set', (data) => {
-        console.log('[Toxic-MD] History sync received');
     });
 }
 
