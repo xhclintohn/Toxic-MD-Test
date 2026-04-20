@@ -1,4 +1,4 @@
-const { getGroupSettings, updateGroupSetting } = require('../../database/config');
+const { getGroupSettings, updateGroupSetting } = require('../../src/database');
 const { getFakeQuoted } = require('../../lib/fakeQuoted');
 
 module.exports = async (context) => {

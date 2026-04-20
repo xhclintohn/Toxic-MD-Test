@@ -1,5 +1,5 @@
-const ownerMiddleware = require('../../utils/botUtil/Ownermiddleware');
-const { getBannedUsers } = require('../../database/config');
+const ownerMiddleware = require('../../lib/Ownermiddleware');
+const { getBannedUsers } = require('../../src/database');
 const { getFakeQuoted } = require('../../lib/fakeQuoted');
 
 module.exports = async (context) => {

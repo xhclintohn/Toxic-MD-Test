@@ -1,6 +1,6 @@
 module.exports = async (context) => {
 
-const ownerMiddleware = require('../../utils/botUtil/Ownermiddleware');
+const ownerMiddleware = require('../../lib/Ownermiddleware');
 const { getFakeQuoted } = require('../../lib/fakeQuoted');
     await ownerMiddleware(context, async () => {
 

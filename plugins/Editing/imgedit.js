@@ -1,4 +1,4 @@
-const { getSettings } = require('../../database/config');
+const { getSettings } = require('../../src/database');
   const { uploadToUrl } = require('../../lib/toUrl');
   const { makePhotoEdit } = require('../../lib/toxicApi');
   const { getFakeQuoted } = require('../../lib/fakeQuoted');

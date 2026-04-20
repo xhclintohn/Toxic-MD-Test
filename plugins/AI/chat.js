@@ -1,7 +1,7 @@
 const fetch = require('node-fetch');
 const { getFakeQuoted } = require('../../lib/fakeQuoted');
   const { GROQ_API_KEY: GROQ_KEY } = require('../../keys');
-  const { getConversationHistory, addConversationMessage, clearConversationHistory } = require('../../database/config');
+  const { getConversationHistory, addConversationMessage, clearConversationHistory } = require('../../src/database');
 
   module.exports = async (context) => {
       const { client, m, text, prefix } = context;

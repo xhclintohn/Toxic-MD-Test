@@ -20,23 +20,20 @@ const FileType = require("file-type");
 const { exec, spawn, execSync } = require("child_process");
 const axios = require("axios");
 const chalk = require("chalk");
-const express = require("express");
-const app = express();
-const port = process.env.PORT || 10000;
 const PhoneNumber = require("awesome-phonenumber");
 const { imageToWebp, videoToWebp, writeExifImg, writeExifVid } = require('./lib/exif');
 const { isUrl, generateMessageTag, getBuffer, getSizeMedia, fetchJson, sleep } = require('./lib/botFunctions');
 const store = makeInMemoryStore({ logger: pino().child({ level: "silent", stream: "store" }) });
 
-const authenticationn = require('./auth/auth.js');
-require('./features/cleanup');
-const { smsg } = require('./handlers/smsg');
-const { getBannedUsers, banUser, db } = require("./database/config");
+const authenticationn = require('./src/auth');
+require('./src/features');
+const { smsg } = require('./src/message');
+const { getBannedUsers, banUser, db } = require("./src/database");
 const { restoreFromGist, startBackupInterval } = require('./lib/dbBackup');
 const { getCachedSettings, getCachedSettingsSync, invalidateSettings } = require('./lib/settingsCache');
-const { botname } = require('./config/settings');
+const { botname } = require('./settings');
 const { DateTime } = require('luxon');
-const { commands, totalCommands } = require('./handlers/commandHandler');
+const { commands, totalCommands } = require('./src/commands');
 const path = require('path');
 
 const sessionName = path.join(__dirname, 'Session');
@@ -45,8 +42,8 @@ if (!fs.existsSync(sessionName)) {
   fs.mkdirSync(sessionName, { recursive: true });
 }
 
-const groupEvents = require("./handlers/eventHandler");
-const connectionHandler = require('./handlers/connectionHandler');
+const groupEvents = require("./src/events");
+const connectionHandler = require('./src/connection');
 console.clear();
 
 const CHANNEL_JID = '120363427340708111@newsletter';
@@ -609,24 +606,7 @@ client.ws.on('CB:ib', (node) => {
 
 app.use(express.static('public'));
 app.get("/", (req, res) => { res.sendFile(path.join(__dirname, 'public', 'index.html')); });
-app.get('/health', (req, res) => {
-    if (process.send) {
-        process.send('uptime');
-        const _t = setTimeout(() => res.json({ status: 'ok', uptime: Math.floor(process.uptime()) }), 2000);
-        process.once('message', (parentUptime) => {
-            clearTimeout(_t);
-            res.json({ status: 'ok', botUptime: Math.floor(process.uptime()), processUptime: Math.floor(parentUptime) });
-        });
-    } else {
-        res.json({ status: 'ok', uptime: Math.floor(process.uptime()) });
-    }
-});
-app.all('/process', (req, res) => {
-    const { send } = req.query;
-    if (!send) return res.status(400).json({ error: 'Missing send query' });
-    if (process.send) { process.send(send); res.json({ status: 'ok', data: send }); }
-    else res.json({ error: 'No IPC channel' });
-});
+app.get("/health", (req, res) => res.json({ status: "ok", uptime: process.uptime() }));
 app.listen(port, () => console.log(`Server running on port ${port}`));
 
 

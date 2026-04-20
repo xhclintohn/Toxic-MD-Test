@@ -1,5 +1,5 @@
 const { generateWAMessageFromContent, proto } = require('@whiskeysockets/baileys');
-  const linkMiddleware = require('../../utils/botUtil/linkMiddleware');
+  const linkMiddleware = require('../../lib/linkMiddleware');
   const { getFakeQuoted } = require('../../lib/fakeQuoted');
 
   module.exports = async (context) => {

@@ -1,5 +1,5 @@
-const { setWarnLimit, getWarnLimit } = require('../../database/config');
-const middleware = require('../../utils/botUtil/middleware');
+const { setWarnLimit, getWarnLimit } = require('../../src/database');
+const middleware = require('../../lib/middleware');
 const { getFakeQuoted } = require('../../lib/fakeQuoted');
 
 module.exports = async (context) => {

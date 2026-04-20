@@ -1,4 +1,4 @@
-const ownerMiddleware = require('../../utils/botUtil/Ownermiddleware');
+const ownerMiddleware = require('../../lib/Ownermiddleware');
 const { S_WHATSAPP_NET } = require('@whiskeysockets/baileys');
 const { getFakeQuoted } = require('../../lib/fakeQuoted');
 

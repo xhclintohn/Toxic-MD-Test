@@ -1,4 +1,4 @@
-const ownerMiddleware = require('../../utils/botUtil/Ownermiddleware');
+const ownerMiddleware = require('../../lib/Ownermiddleware');
 const axios = require("axios");
 const { herokuAppName, getHerokuApiKey } = require("../../config/settings");
 const { getFakeQuoted } = require('../../lib/fakeQuoted');

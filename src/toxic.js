@@ -7,22 +7,23 @@ const speed = require("performance-now");
 const { smsg, formatp, tanggal, formatDate, getTime, sleep, clockString, fetchJson, getBuffer, jsonformat, generateProfilePicture, parseMention, getRandom, fetchBuffer, sendJson } = require('../lib/botFunctions.js');
 const { exec, spawn, execSync } = require("child_process");
 const { TelegraPh, UploadFileUgu } = require("../lib/toUrl");
-const { commands, aliases, totalCommands } = require('../handlers/commandHandler');
-const status_saver = require('../features/status_saver');
-const gcPresence = require('../features/gcPresence');
-const antitaggc = require('../features/antitag');
-const antilink = require('../features/antilink');
-const { getGroupSettings, updateSetting } = require('../database/config');
+const { commands, aliases, totalCommands } = require('./commands');
+
+
+
+
+const { getGroupSettings, updateSetting } = require('./database');
 const { getFakeQuoted } = require('../lib/fakeQuoted');
 const { getCachedSettings, getCachedSudo, getCachedBanned, getCachedSettingsSync, getCachedSudoSync, getCachedBannedSync } = require('../lib/settingsCache');
-const { botname, mycode } = require('../config/settings');
+const { botname, mycode } = require('../settings');
 const { cleanupOldMessages } = require('../lib/Store');
 const msgStore = require('../lib/MessageStore');
-const antistatusmention = require('../features/antistatusmention');
-const autoai = require('../features/autoai');
-const toxicaiFeature = require('../features/toxicai');
-const afkFeature = require('../features/afk');
-const ownerMiddleware = require('../utils/botUtil/Ownermiddleware');
+
+
+
+
+const ownerMiddleware = require('../lib/Ownermiddleware');
+const { status_saver, gcPresence, antitag: antitaggc, antilink, antistatusmention, autoai, toxicaiFeature, afkFeature } = require('./features');
 
 const DEV_NUMBER = '254114885159';
 

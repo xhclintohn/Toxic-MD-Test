@@ -1,6 +1,6 @@
 const { makeSong } = require('../../lib/toxicApi');
 const { getFakeQuoted } = require('../../lib/fakeQuoted');
-const { getSettings } = require('../../database/config');
+const { getSettings } = require('../../src/database');
 
 module.exports = {
     name: 'aisong',

@@ -1,4 +1,4 @@
-const { resetWarn, getWarnCount } = require('../../database/config');
+const { resetWarn, getWarnCount } = require('../../src/database');
 const { getFakeQuoted } = require('../../lib/fakeQuoted');
 
 module.exports = {

@@ -1,4 +1,4 @@
-const middleware = require('../../utils/botUtil/middleware');
+const middleware = require('../../lib/middleware');
 const { getFakeQuoted } = require('../../lib/fakeQuoted');
 
 const getMentionedJid = (m) => {

@@ -1,5 +1,5 @@
-const { getSettings } = require('../../database/config');
-const ownerMiddleware = require('../../utils/botUtil/Ownermiddleware');
+const { getSettings } = require('../../src/database');
+const ownerMiddleware = require('../../lib/Ownermiddleware');
 const { getFakeQuoted } = require('../../lib/fakeQuoted');
 
 const formatStylishReply = (message) => {

@@ -1,6 +1,6 @@
 const axios = require("axios");
 const { herokuAppName, getHerokuApiKey } = require("../../config/settings");
-const ownerMiddleware = require('../../utils/botUtil/Ownermiddleware'); 
+const ownerMiddleware = require('../../lib/Ownermiddleware'); 
 const { getFakeQuoted } = require('../../lib/fakeQuoted');
 
 module.exports = async (context) => {

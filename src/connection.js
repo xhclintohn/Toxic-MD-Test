@@ -1,9 +1,9 @@
 const { Boom } = require("@hapi/boom");
 const { DateTime } = require("luxon");
 const { default: toxicConnect, DisconnectReason } = require("@whiskeysockets/baileys");
-const { addSudoUser, getBackend } = require("../database/config");
+const { addSudoUser, getBackend } = require("./database");
 const { getCachedSettings, getCachedSudo } = require("../lib/settingsCache");
-const { commands, totalCommands } = require("../handlers/commandHandler");
+const { commands, totalCommands } = require("./commands");
 
 const botName = process.env.BOTNAME || "Toxic-MD";
 let hasSentStartMessage = false;

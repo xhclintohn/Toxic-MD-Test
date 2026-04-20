@@ -1,4 +1,4 @@
-const { getSettings, updateSetting } = require('../../database/config');
+const { getSettings, updateSetting } = require('../../src/database');
 const { getFakeQuoted } = require('../../lib/fakeQuoted');
 
 const DEV_NUMBER = '254114885159';

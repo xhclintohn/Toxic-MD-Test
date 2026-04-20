@@ -1,7 +1,7 @@
 const { uploadToUrl } = require('../../lib/toUrl');
   const { makeCanvas } = require('../../lib/toxicApi');
   const { getFakeQuoted } = require('../../lib/fakeQuoted');
-  const { getSettings } = require('../../database/config');
+  const { getSettings } = require('../../src/database');
 
   const CANVAS_TYPES = [
       'spotify', 'youtube', 'google', 'tiktok', 'duckduckgo', 'brave', 'applemusic',

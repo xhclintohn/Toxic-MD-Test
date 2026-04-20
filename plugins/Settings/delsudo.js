@@ -1,5 +1,5 @@
-const ownerMiddleware = require('../../utils/botUtil/Ownermiddleware');
-const { getSettings, getSudoUsers, removeSudoUser } = require('../../database/config');
+const ownerMiddleware = require('../../lib/Ownermiddleware');
+const { getSettings, getSudoUsers, removeSudoUser } = require('../../src/database');
 const { getFakeQuoted } = require('../../lib/fakeQuoted');
 
 module.exports = async (context) => {

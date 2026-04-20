@@ -1,4 +1,4 @@
-const { botname } = require('../../config/settings');
+const { botname } = require('../../settings');
 const { getFakeQuoted } = require('../../lib/fakeQuoted');
 
 module.exports = {

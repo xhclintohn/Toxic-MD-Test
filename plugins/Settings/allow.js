@@ -1,5 +1,5 @@
-const { getSettings, getAllowedUsers, addAllowedUser, removeAllowedUser } = require('../../database/config');
-const ownerMiddleware = require('../../utils/botUtil/Ownermiddleware');
+const { getSettings, getAllowedUsers, addAllowedUser, removeAllowedUser } = require('../../src/database');
+const ownerMiddleware = require('../../lib/Ownermiddleware');
 const { getFakeQuoted } = require('../../lib/fakeQuoted');
 
 function cleanNumber(raw) {

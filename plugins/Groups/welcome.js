@@ -1,5 +1,5 @@
-const { getGroupSettings, updateGroupSetting } = require('../../database/config');
-const ownerMiddleware = require('../../utils/botUtil/Ownermiddleware');
+const { getGroupSettings, updateGroupSetting } = require('../../src/database');
+const ownerMiddleware = require('../../lib/Ownermiddleware');
 const { getFakeQuoted } = require('../../lib/fakeQuoted');
 
 module.exports = async (context) => {

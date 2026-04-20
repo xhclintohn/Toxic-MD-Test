@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { generateWAMessageFromContent } = require('@whiskeysockets/baileys');
-const { getSettings } = require('../../database/config');
+const { getSettings } = require('../../src/database');
 const { getFakeQuoted } = require('../../lib/fakeQuoted');
 
 module.exports = {

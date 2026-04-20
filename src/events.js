@@ -1,4 +1,4 @@
-const { getGroupSettings, getSudoUsers, resetWarn } = require("../database/config");
+const { getGroupSettings, getSudoUsers, resetWarn } = require("./database");
 
 const DEVELOPER_NUMBER = "254114885159";
 

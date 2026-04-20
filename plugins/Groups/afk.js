@@ -1,4 +1,4 @@
-const afkFeature = require('../../features/afk');
+const afkFeature = require('../../src/features').afkFeature;
 const { getFakeQuoted } = require('../../lib/fakeQuoted');
 
 module.exports = {

@@ -1,6 +1,6 @@
-const { getSettings, updateSetting } = require('../../database/config');
+const { getSettings, updateSetting } = require('../../src/database');
 const { generateWAMessageFromContent, proto } = require('@whiskeysockets/baileys');
-const ownerMiddleware = require('../../utils/botUtil/Ownermiddleware');
+const ownerMiddleware = require('../../lib/Ownermiddleware');
 const { getFakeQuoted } = require('../../lib/fakeQuoted');
 
 const MODES = {

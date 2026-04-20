@@ -1,6 +1,6 @@
-const { getSettings, getSudoUsers, getBannedUsers } = require('../../database/config');
-const ownerMiddleware = require('../../utils/botUtil/Ownermiddleware');
-const { botname } = require('../../config/settings');
+const { getSettings, getSudoUsers, getBannedUsers } = require('../../src/database');
+const ownerMiddleware = require('../../lib/Ownermiddleware');
+const { botname } = require('../../settings');
 const { getFakeQuoted } = require('../../lib/fakeQuoted');
 
 module.exports = {
