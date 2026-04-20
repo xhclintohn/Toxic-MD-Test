@@ -1,5 +1,5 @@
 const axios = require("axios");
-const { herokuAppName, getHerokuApiKey } = require("../../config/settings");
+const { herokuAppName, getHerokuApiKey } = require("../../settings");
 const ownerMiddleware = require('../../lib/Ownermiddleware'); 
 const { getFakeQuoted } = require('../../lib/fakeQuoted');
 

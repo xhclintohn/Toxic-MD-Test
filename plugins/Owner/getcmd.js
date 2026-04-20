@@ -14,7 +14,7 @@ const fs = require('fs').promises;
 
   function resolveAlias(input) {
       try {
-          const { aliases } = require('../../handlers/commandHandler');
+          const { aliases } = require('../../src/commands');
           if (aliases && aliases[input.toLowerCase()]) return aliases[input.toLowerCase()];
       } catch {}
       return input;

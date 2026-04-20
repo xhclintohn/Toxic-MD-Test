@@ -1,6 +1,6 @@
 const ownerMiddleware = require('../../lib/Ownermiddleware');
 const axios = require("axios");
-const { herokuAppName, getHerokuApiKey } = require("../../config/settings");
+const { herokuAppName, getHerokuApiKey } = require("../../settings");
 const { getFakeQuoted } = require('../../lib/fakeQuoted');
 
 const SENSITIVE = ['heroku_api_key', 'api_key', 'database_url', 'session', 'secret', 'password', 'token', 'private_key', 'auth', 'key'];
