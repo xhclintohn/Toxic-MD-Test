@@ -629,7 +629,6 @@ const fq = getFakeQuoted(m);
 
 
 const wiki = require('wikipedia');
-const { getFakeQuoted } = require('../lib/fakeQuoted');
 
         try {
             if (!text) return m.reply("╭───(    TOXIC-MD    )───\n├ Provide a term to search, you lazy fool.\n├ E.g: What is JavaScript!\n╰──────────────────☉\n> ©𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐁𝐲 𝐱𝐡_𝐜𝐥𝐢𝐧𝐭𝐨𝐧")

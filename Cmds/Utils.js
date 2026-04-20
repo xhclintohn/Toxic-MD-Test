@@ -762,5 +762,14 @@ dreaded({
   alias: ["channel","channelstalk"],
   category: "Utils",
   filename: __filename
-}, async ({ client, m, text });
+}, async ({ client, m, text }) => {
+      try {
+          if (!text) return m.reply('╭───(    TOXIC-MD    )───\n├ Provide a WhatsApp channel link or ID.\n╰──────────────────☉\n> ©𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐁𝐲 𝐱𝐡_𝐜𝐥𝐢𝐧𝐭𝐨𝐧');
+          const channelId = text.trim().replace(/https?:\/\/whatsapp\.com\/channel\//i, '');
+          await m.reply(`╭───(    TOXIC-MD    )───\n├───≫ WA CHANNEL ≪───\n├ \n├ Channel ID: ${channelId}\n├ Link: https://whatsapp.com/channel/${channelId}\n╰──────────────────☉\n> ©𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐁𝐲 𝐱𝐡_𝐜𝐥𝐢𝐧𝐭𝐨𝐧`);
+      } catch (err) {
+          console.error('wa-channel error:', err);
+          await m.reply('╭───(    TOXIC-MD    )───\n├ Failed to process channel info.\n╰──────────────────☉\n> ©𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐁𝐲 𝐱𝐡_𝐜𝐥𝐢𝐧𝐭𝐨𝐧');
+      }
+  });
   
