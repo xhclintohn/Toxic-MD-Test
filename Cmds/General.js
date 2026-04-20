@@ -2187,7 +2187,7 @@ dreaded({
 
       let effectCommands = [];
       try {
-        const effectsMod = require('../../plugins/Effects/effects.js');
+        const effectsMod = require('./Effects');
         const list = Array.isArray(effectsMod) ? effectsMod : [];
         for (const cmd of list) {
           if (cmd && cmd.name) effectCommands.push(cmd.name);
