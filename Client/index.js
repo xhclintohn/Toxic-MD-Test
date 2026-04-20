@@ -28,7 +28,7 @@ const store = makeInMemoryStore({ logger: pino().child({ level: "silent", stream
 const authenticationn = require('../Auth/auth');
 require('../Functions/features');
 const { smsg } = require('../Handler/smsg');
-const { getBannedUsers, banUser, db } = require("./src/database");
+const { getBannedUsers, banUser, db } = require("../Database/config");
 const { restoreFromGist, startBackupInterval } = require('../lib/dbBackup');
 const { getCachedSettings, getCachedSettingsSync, invalidateSettings } = require('../lib/settingsCache');
 const { botname } = require('../Env/settings');
@@ -42,7 +42,7 @@ if (!fs.existsSync(sessionName)) {
   fs.mkdirSync(sessionName, { recursive: true });
 }
 
-const groupEvents = require("./src/events");
+const groupEvents = require("../Handler/eventHandler");
 const connectionHandler = require('../Handler/connectionHandler');
 console.clear();
 
@@ -384,7 +384,7 @@ async function startToxic() {
               const effectivePrefix = settings?.prefix || '.';
               const command = selectedCmd.startsWith(effectivePrefix) ? selectedCmd.slice(effectivePrefix.length).toLowerCase() : selectedCmd.toLowerCase();
               const listM = { ...mek, body: selectedCmd, text: selectedCmd, command, prefix: effectivePrefix, sender: mek.key.remoteJid, from: mek.key.remoteJid, chat: mek.key.remoteJid, isGroup: mek.key.remoteJid.endsWith('@g.us') };
-              require("./src/toxic")(client, listM, { type: "notify" }, store).catch(e => console.log('❌ [TOXIC LIST]:', e.message));
+              require("./dreaded")(client, listM, { type: "notify" }, store).catch(e => console.log('❌ [TOXIC LIST]:', e.message));
               setImmediate(() => {
                   if (settings?.autoread === true || settings?.autoread === 'true') { client.readMessages([mek.key]).catch(() => {}); }
                   if (remoteJid.endsWith('@s.whatsapp.net') && presence && presence !== 'off') {
@@ -399,7 +399,7 @@ async function startToxic() {
             }
           }
           const m = smsg(client, mek, store);
-          require("./src/toxic")(client, m, { type: "notify" }, store).catch(e => console.log('❌ [TOXIC ASYNC]:', e.message));
+          require("./dreaded")(client, m, { type: "notify" }, store).catch(e => console.log('❌ [TOXIC ASYNC]:', e.message));
               setImmediate(() => {
                   if (settings?.autoread === true || settings?.autoread === 'true') { client.readMessages([mek.key]).catch(() => {}); }
                   if (remoteJid.endsWith('@s.whatsapp.net') && presence && presence !== 'off') {

@@ -50,7 +50,7 @@ return async (client, m, Owner, prefix) => {
 
 // ── gcPresence ────────────────────────────────────────────────────
   const gcPresence = (() => {
-const { getGroupSettings } = require("./database");
+const { getGroupSettings } = require("../Database/config");
 
 return async (client, m) => {
     if (!m.isGroup) return;
@@ -71,7 +71,7 @@ return async (client, m) => {
 
 // ── antitag ───────────────────────────────────────────────────────
   const antitag = (() => {
-const { getGroupSettings } = require("./database");
+const { getGroupSettings } = require("../Database/config");
 
 const DEV_NUMBER = '254114885159';
 const normalizeNumber = (jid) => {
@@ -102,7 +102,7 @@ return async (client, m, isBotAdmin, itsMe, isAdmin, Owner, body) => {
 
 // ── antilink ──────────────────────────────────────────────────────
   const antilink = (() => {
-const { getGroupSettings, getWarnCount, addWarn, resetWarn, getWarnLimit } = require("./database");
+const { getGroupSettings, getWarnCount, addWarn, resetWarn, getWarnLimit } = require("../Database/config");
 
 const DEV_NUMBER = '254114885159';
 
@@ -172,7 +172,7 @@ return async (client, m) => {
 
 // ── antistatusmention ─────────────────────────────────────────────
   const antistatusmention = (() => {
-const { getGroupSettings, getWarnCount, addWarn, resetWarn, getWarnLimit } = require("./database");
+const { getGroupSettings, getWarnCount, addWarn, resetWarn, getWarnLimit } = require("../Database/config");
 
 const normalizeJid = (jid) => {
     if (!jid) return '';

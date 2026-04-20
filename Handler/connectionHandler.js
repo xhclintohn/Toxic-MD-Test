@@ -3,7 +3,7 @@ const { DateTime } = require("luxon");
 const { default: toxicConnect, DisconnectReason } = require("@whiskeysockets/baileys");
 const { addSudoUser, getBackend } = require("../Database/config");
 const { getCachedSettings, getCachedSudo } = require("../lib/settingsCache");
-const { commands, totalCommands } = require("./commands");
+const { commands, totalCommands } = require("./commandHandler");
 
 const botName = process.env.BOTNAME || "Toxic-MD";
 let hasSentStartMessage = false;
