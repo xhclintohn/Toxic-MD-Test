@@ -1,16 +1,18 @@
-'use strict';
-const fs = require('fs');
-const path = require('path');
-const {
-    default: makeWASocket,
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import makeWASocket, {
     useMultiFileAuthState,
     DisconnectReason,
     makeCacheableSignalKeyStore,
-    Browsers,
-} = require('@whiskeysockets/baileys');
-const pino = require('pino');
-const { Boom } = require('@hapi/boom');
-const express = require('express');
+    Browsers
+} from '@whiskeysockets/baileys';
+import pino from 'pino';
+import { Boom } from '@hapi/boom';
+import express from 'express';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 function loadSession() {
     const sessionDir = path.join(__dirname, 'Session');
@@ -60,7 +62,7 @@ async function connect() {
 
     const { state, saveCreds } = await useMultiFileAuthState(path.join(__dirname, 'Session'));
 
-    const client = makeWASocket({
+    const client = makeWASocket.default({
         logger: pino({ level: 'silent' }),
         printQRInTerminal: true,
         auth: {
@@ -80,7 +82,7 @@ async function connect() {
             const code = new Boom(lastDisconnect?.error)?.output?.statusCode;
             const reconnect = code !== DisconnectReason.loggedOut;
             console.log('[Toxic-MD] Disconnected, code:', code, '| reconnect:', reconnect);
-            if (reconnect) setTimeout(connect, 5000);
+            if (reconnect) connect();
         } else if (connection === 'open') {
             console.log('[Toxic-MD] Connected ✅');
         }
