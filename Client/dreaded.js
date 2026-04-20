@@ -175,7 +175,6 @@ module.exports = toxic = async (client, m, chatUpdate, store) => {
         const _fmBody = (m.text || m.body || m.message?.conversation || m.message?.extendedTextMessage?.text || '').trim();
         if (!_fmBody || !_allPfx.some(p => _fmBody.startsWith(p))) return;
     }
-    console.log('[TOXIC MSG] rcv | sender:', m.sender, '| body:', (m.body || '').slice(0, 60));
     try {
         const rawSudoUsers = getCachedSudoSync();
         const rawBannedUsers = getCachedBannedSync();
