@@ -26,7 +26,6 @@ function loadSessionFromEnv() {
     
     if (sessionData && sessionData !== 'zokk' && sessionData !== 'PASTE_YOUR_SESSION_ID_HERE') {
         try {
-            // Try to decode base64 session
             const decoded = Buffer.from(sessionData, 'base64').toString('utf8');
             fs.writeFileSync(credsPath, decoded, 'utf8');
             console.log('[Toxic-MD] Session loaded from env ✅');
@@ -51,7 +50,6 @@ app.listen(PORT, () => console.log(`[Toxic-MD] Web server on port ${PORT}`));
 const PREFIX = '.';
 
 async function connect() {
-    // Load session from env var before connecting
     loadSessionFromEnv();
 
     const sessionDir = path.join(__dirname, 'Session');
@@ -68,10 +66,10 @@ async function connect() {
         generateHighQualityLinkPreview: false,
         syncFullHistory: false,
         markOnlineOnConnect: false,
-        // Performance optimizations
         defaultQueryTimeoutMs: undefined,
         keepAliveIntervalMs: 10000,
-        patchMessageBeforeSending: (message) => message,
+        // Critical: Don't wait for message receipts
+        emitOwnEvents: false,
     });
 
     client.ev.on('creds.update', saveCreds);
@@ -87,35 +85,32 @@ async function connect() {
         }
     });
 
-    // ─── Optimized Message handler ───────────────────────────────────
+    // ─── SUPER FAST Message handler ───────────────────────────────────
     client.ev.on('messages.upsert', async ({ messages, type }) => {
         if (type !== 'notify') return;
         
         const msg = messages[0];
         if (!msg?.message || !msg.key?.remoteJid) return;
 
+        // Don't respond to own messages
+        if (msg.key.fromMe) return;
+
         const from = msg.key.remoteJid;
         
-        // Fast text extraction
-        let body = '';
-        if (msg.message.conversation) {
-            body = msg.message.conversation;
-        } else if (msg.message.extendedTextMessage?.text) {
-            body = msg.message.extendedTextMessage.text;
-        } else {
-            return;
-        }
+        // Fastest text extraction
+        let body = msg.message.conversation || 
+                   msg.message.extendedTextMessage?.text || 
+                   '';
+        
+        if (!body || !body.startsWith(PREFIX)) return;
 
-        if (!body.startsWith(PREFIX)) return;
-
-        const args = body.slice(PREFIX.length).trim().split(/\s+/);
-        const cmd = args[0].toLowerCase();
+        const cmd = body.slice(PREFIX.length).trim().split(/\s+/)[0].toLowerCase();
 
         if (cmd === 'ping') {
-            const t = Date.now();
+            // DON'T use quoted parameter - that causes delay!
             await client.sendMessage(from, {
-                text: `🏓 *Pong!*\n⚡ Speed: ${Date.now() - t}ms`
-            }, { quoted: msg });
+                text: '🏓 Pong!'
+            });
         }
     });
 }
