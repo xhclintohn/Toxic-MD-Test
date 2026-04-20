@@ -91,23 +91,22 @@ async function connect() {
     client.ev.on('messages.upsert', async ({ messages, type }) => {
         if (type !== 'notify') return;
         const msg = messages[0];
-        if (!msg?.message || !msg.key?.remoteJid) return;
+        if (!msg?.message) return;
 
         const from = msg.key.remoteJid;
         if (from === 'status@broadcast') return;
+        
+        const messageContent = msg.message?.extendedTextMessage?.text || msg.message?.conversation || msg.message?.imageMessage?.caption || msg.message?.videoMessage?.caption || '';
+        
+        console.log(`[Message] From: ${from} | Content: ${messageContent}`);
+
         if (msg.key.fromMe) return;
 
         await client.readMessages([msg.key]);
 
-        const body =
-            msg.message?.conversation ||
-            msg.message?.extendedTextMessage?.text ||
-            msg.message?.imageMessage?.caption ||
-            msg.message?.videoMessage?.caption || '';
+        if (!messageContent.startsWith(PREFIX)) return;
 
-        if (!body.startsWith(PREFIX)) return;
-
-        const args = body.slice(PREFIX.length).trim().split(/\s+/);
+        const args = messageContent.slice(PREFIX.length).trim().split(/\s+/);
         const cmd = args[0].toLowerCase();
 
         if (cmd === 'ping') {
