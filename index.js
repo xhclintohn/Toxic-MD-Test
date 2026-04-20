@@ -13,6 +13,34 @@ const pino = require('pino');
 const { Boom } = require('@hapi/boom');
 const express = require('express');
 
+// ─── Session loading from env var ────────────────────────────────────
+function loadSessionFromEnv() {
+    const sessionDir = path.join(__dirname, 'Session');
+    const credsPath = path.join(sessionDir, 'creds.json');
+    
+    if (!fs.existsSync(sessionDir)) {
+        fs.mkdirSync(sessionDir, { recursive: true });
+    }
+
+    const sessionData = process.env.SESSION || '';
+    
+    if (sessionData && sessionData !== 'zokk' && sessionData !== 'PASTE_YOUR_SESSION_ID_HERE') {
+        try {
+            // Try to decode base64 session
+            const decoded = Buffer.from(sessionData, 'base64').toString('utf8');
+            fs.writeFileSync(credsPath, decoded, 'utf8');
+            console.log('[Toxic-MD] Session loaded from env ✅');
+            return true;
+        } catch (e) {
+            console.log('[Toxic-MD] Session decode failed:', e.message);
+            return false;
+        }
+    } else {
+        console.log('[Toxic-MD] No session in env — will show QR code');
+        return false;
+    }
+}
+
 // ─── Express keep-alive ──────────────────────────────────────────────
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -23,13 +51,10 @@ app.listen(PORT, () => console.log(`[Toxic-MD] Web server on port ${PORT}`));
 const PREFIX = '.';
 
 async function connect() {
-    const sessionDir = path.join(__dirname, 'Session');
-    
-    // Ensure session directory exists
-    if (!fs.existsSync(sessionDir)) {
-        fs.mkdirSync(sessionDir, { recursive: true });
-    }
+    // Load session from env var before connecting
+    loadSessionFromEnv();
 
+    const sessionDir = path.join(__dirname, 'Session');
     const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
 
     const client = makeWASocket({
@@ -64,7 +89,6 @@ async function connect() {
 
     // ─── Optimized Message handler ───────────────────────────────────
     client.ev.on('messages.upsert', async ({ messages, type }) => {
-        // Skip non-notify messages immediately
         if (type !== 'notify') return;
         
         const msg = messages[0];
@@ -72,31 +96,27 @@ async function connect() {
 
         const from = msg.key.remoteJid;
         
-        // Fast path: check for text message
+        // Fast text extraction
         let body = '';
         if (msg.message.conversation) {
             body = msg.message.conversation;
         } else if (msg.message.extendedTextMessage?.text) {
             body = msg.message.extendedTextMessage.text;
         } else {
-            return; // Skip non-text messages
+            return;
         }
 
-        // Check prefix
         if (!body.startsWith(PREFIX)) return;
 
         const args = body.slice(PREFIX.length).trim().split(/\s+/);
         const cmd = args[0].toLowerCase();
 
-        // Command handlers
         if (cmd === 'ping') {
             const t = Date.now();
             await client.sendMessage(from, {
                 text: `🏓 *Pong!*\n⚡ Speed: ${Date.now() - t}ms`
             }, { quoted: msg });
         }
-        
-        // Add more commands here as needed
     });
 }
 
