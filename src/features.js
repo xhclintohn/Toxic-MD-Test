@@ -1,20 +1,11 @@
-// src/features.js — merged from features/ directory
-  // All database requires updated from ../database/config to ./database
+// src/features.js — each feature in its own IIFE scope to prevent variable collisions
 
-  // ── shared requires (deduplicated) ───────────────────────────────────
+// ── cleanup ──────────────────────────────────────────────────────────
+  ((() => {
   const { readdirSync, statSync, unlinkSync, existsSync, mkdirSync } = require('fs');
-  const { join } = require('path');
-  const { getGroupSettings, getWarnCount, addWarn, resetWarn, getWarnLimit } = require('./database');
-  const { getConversationHistory, addConversationMessage, clearConversationHistory } = require('./database');
-  const { commands, aliases } = require('./commands');
-  const { getCachedAllowed, getCachedSettingsSync } = require('../lib/settingsCache');
-  const { getFakeQuoted } = require('../lib/fakeQuoted');
-  const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
-  const axios = require('axios');
-  const fetch = require('node-fetch');
+const { join } = require('path');
 
-  // ── cleanup ───────────────────────────────────────────────────────────
-  const TMP_DIRS = ['./tmp', './temp'];
+const TMP_DIRS = ['./tmp', './temp'];
 const MAX_AGE_MS = 3 * 60 * 60 * 1000;
 const INTERVAL_MS = 6 * 60 * 60 * 1000;
 
@@ -48,13 +39,20 @@ function startCleanupScheduler() {
 
 
 startCleanupScheduler();
+})());
 
-  // ── status_saver ──────────────────────────────────────────────────────
-  module.exports = async (client, m, Owner, prefix) => {
+// ── status_saver ──────────────────────────────────────────────────
+  const status_saver = (() => {
+return async (client, m, Owner, prefix) => {
   };
+  
+})();
 
-  // ── gcPresence ────────────────────────────────────────────────────────
-  const gcPresence = async (client, m) => {
+// ── gcPresence ────────────────────────────────────────────────────
+  const gcPresence = (() => {
+const { getGroupSettings } = require("./database");
+
+return async (client, m) => {
     if (!m.isGroup) return;
 
     const groupSettings = await getGroupSettings(m.chat);
@@ -69,15 +67,19 @@ startCleanupScheduler();
         }
     }
 };
+})();
 
-  // ── antitag ───────────────────────────────────────────────────────────
-  const DEV_NUMBER = '254114885159';
+// ── antitag ───────────────────────────────────────────────────────
+  const antitag = (() => {
+const { getGroupSettings } = require("./database");
+
+const DEV_NUMBER = '254114885159';
 const normalizeNumber = (jid) => {
     if (!jid) return '';
     return jid.split('@')[0].split(':')[0].replace(/\D/g, '') + '@s.whatsapp.net';
 };
 
-const antitag = async (client, m, isBotAdmin, itsMe, isAdmin, Owner, body) => {
+return async (client, m, isBotAdmin, itsMe, isAdmin, Owner, body) => {
     if (!m.isGroup) return;
     const isDev = normalizeNumber(m.sender) === normalizeNumber(DEV_NUMBER);
     if (isDev) return;
@@ -96,15 +98,20 @@ const antitag = async (client, m, isBotAdmin, itsMe, isAdmin, Owner, body) => {
     }
 };
 
-  // ── antilink ──────────────────────────────────────────────────────────
-  const DEV_NUMBER = '254114885159';
+})();
+
+// ── antilink ──────────────────────────────────────────────────────
+  const antilink = (() => {
+const { getGroupSettings, getWarnCount, addWarn, resetWarn, getWarnLimit } = require("./database");
+
+const DEV_NUMBER = '254114885159';
 
 const normalizeJid = (jid) => {
     if (!jid) return '';
     return jid.split('@')[0].split(':')[0].replace(/\D/g, '') + '@s.whatsapp.net';
 };
 
-const antilink = async (client, m) => {
+return async (client, m) => {
     try {
         if (!m || !m.chat || !m.chat.endsWith('@g.us')) return;
         if (m.key?.fromMe) return;
@@ -161,8 +168,13 @@ const antilink = async (client, m) => {
     }
 };
 
-  // ── antistatusmention ─────────────────────────────────────────────────
-  const normalizeJid = (jid) => {
+})();
+
+// ── antistatusmention ─────────────────────────────────────────────
+  const antistatusmention = (() => {
+const { getGroupSettings, getWarnCount, addWarn, resetWarn, getWarnLimit } = require("./database");
+
+const normalizeJid = (jid) => {
     if (!jid) return '';
     const decoded = jid.split('@');
     const user = decoded[0].split(':')[0];
@@ -173,7 +185,7 @@ const antilink = async (client, m) => {
 
 const fmt = (msg) => `╭───(    TOXIC-MD    )───\n├  ${msg}\n╰──────────────────☉\n> ©𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐁𝐲 𝐱𝐡_𝐜𝐥𝐢𝐧𝐭𝐨𝐧`;
 
-const antistatusmention = async (client, m) => {
+return async (client, m) => {
     try {
         if (!m?.message) return;
         if (m.key.fromMe) return;
@@ -257,8 +269,18 @@ const antistatusmention = async (client, m) => {
     }
 };
 
-  // ── autoai ────────────────────────────────────────────────────────────
-  let GROQ_KEY = '';
+})();
+
+// ── autoai ────────────────────────────────────────────────────────
+  const autoai = (() => {
+const axios = require('axios');
+const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
+const { commands, aliases } = require('./commands');
+const { getConversationHistory, addConversationMessage, clearConversationHistory } = require('./database');
+const { getCachedAllowed } = require('../lib/settingsCache');
+const { getFakeQuoted } = require('../lib/fakeQuoted');
+
+let GROQ_KEY = '';
 try { GROQ_KEY = require('../keys').GROQ_API_KEY || ''; } catch {}
 
 const MEM_TTL = 60 * 60 * 1000;
@@ -431,7 +453,7 @@ COMMAND MAPPING (STRICT):
   FULL COMMAND LIST:
 ${COMMAND_CATALOG}`;
 
-const autoai = async (context) => {
+return async (context) => {
     const remoteJid = context?.m?.key?.remoteJid || context?.m?.chat;
     try {
         const { client, m, settings, botNumber } = context;
@@ -637,8 +659,14 @@ const autoai = async (context) => {
     }
 };
 
-  // ── toxicai ───────────────────────────────────────────────────────────
-  const DEV_NUMBER = '254114885159';
+})();
+
+// ── toxicai ───────────────────────────────────────────────────────
+  const toxicaiFeature = (() => {
+const fetch = require('node-fetch');
+const { getFakeQuoted } = require('../lib/fakeQuoted');
+
+const DEV_NUMBER = '254114885159';
 const GH_USERNAME = 'xhclintohn';
 const HISTORY_TTL = 6 * 60 * 60 * 1000;
 const MAX_HISTORY = 30;
@@ -788,7 +816,7 @@ ${repoCtx}
 Today: ${new Date().toDateString()}. Working for: ${GH_USERNAME}.`;
 }
 
-const toxicaiFeature = async (context) => {
+return async (context) => {
     const { client, m, body: msgBody, isDev } = context;
     const fq = getFakeQuoted(m);
 
@@ -1167,10 +1195,13 @@ const toxicaiFeature = async (context) => {
     }
 };
 
-  // ── afk ───────────────────────────────────────────────────────────────
-  const afkMap = new Map();
+})();
 
-const afkFeature = async (client, m) => {
+// ── afk ───────────────────────────────────────────────────────────
+  const afkFeature = (() => {
+const afkMap = new Map();
+
+return async (client, m) => {
     if (!m || !m.sender) return;
     const senderNum = m.sender.split('@')[0].split(':')[0];
 
@@ -1209,7 +1240,12 @@ module.exports.setAfk = (num, reason) => afkMap.set(num, { reason, time: Date.no
 module.exports.removeAfk = (num) => afkMap.delete(num);
 module.exports.isAfk = (num) => afkMap.has(num);
 
-  // ── autolike ──────────────────────────────────────────────────────────
+})();
+
+// ── autolike ──────────────────────────────────────────────────────
+  const autolike = (() => {
+const { getCachedSettingsSync } = require('../lib/settingsCache');
+
   const _EMOJIS = ['❤️','🔥','😂','😍','👏','🥰','💯','😭','🤣','🙏','👌','💪','🤩','😎','🥳','✨','💀','🤯','😤','💅','👀','🎉','😈','🤫','🫶'];
 
   async function autolike(client, message) {
@@ -1231,7 +1267,7 @@ module.exports.isAfk = (num) => afkMap.has(num);
   }
 
   module.exports = autolike;
+  return autolike;
+})();
 
-  // ── exports ───────────────────────────────────────────────────────────
-  module.exports = { status_saver, gcPresence, antitag, antilink, antistatusmention, autoai, toxicaiFeature, afkFeature, autolike };
-  
+module.exports = { status_saver, gcPresence, antitag, antilink, antistatusmention, autoai, toxicaiFeature, afkFeature, autolike };
