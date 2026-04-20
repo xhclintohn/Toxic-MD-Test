@@ -275,7 +275,6 @@ return async (client, m) => {
   const autoai = (() => {
 const axios = require('axios');
 const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
-const { commands, aliases } = require('./commands');
 const { getConversationHistory, addConversationMessage, clearConversationHistory } = require('./database');
 const { getCachedAllowed } = require('../lib/settingsCache');
 const { getFakeQuoted } = require('../lib/fakeQuoted');
@@ -454,6 +453,7 @@ COMMAND MAPPING (STRICT):
 ${COMMAND_CATALOG}`;
 
 return async (context) => {
+  const { commands, aliases } = require('./commands');
     const remoteJid = context?.m?.key?.remoteJid || context?.m?.chat;
     try {
         const { client, m, settings, botNumber } = context;
