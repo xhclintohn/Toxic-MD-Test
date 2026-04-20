@@ -1,12 +1,14 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import makeWASocket, {
-    useMultiFileAuthState,
-    DisconnectReason,
-    makeCacheableSignalKeyStore,
-    Browsers
-} from '@whiskeysockets/baileys';
+import pkg from '@whiskeysockets/baileys';
+const { 
+    default: makeWASocket, 
+    useMultiFileAuthState, 
+    DisconnectReason, 
+    makeCacheableSignalKeyStore, 
+    Browsers 
+} = pkg;
 import pino from 'pino';
 import { Boom } from '@hapi/boom';
 import express from 'express';
@@ -27,9 +29,7 @@ function loadSession() {
                 try {
                     const parsed = JSON.parse(raw);
                     sessionData = parsed.SESSION_ID || parsed.session || parsed.SESSION || '';
-                } catch {
-                    sessionData = raw;
-                }
+                } catch { sessionData = raw; }
             } catch {}
         }
     }
@@ -55,7 +55,7 @@ async function connect() {
     loadSession();
     const { state, saveCreds } = await useMultiFileAuthState(path.join(__dirname, 'Session'));
 
-    const client = makeWASocket.default({
+    const client = makeWASocket({
         logger: pino({ level: 'silent' }),
         printQRInTerminal: true,
         auth: {
@@ -87,15 +87,11 @@ async function connect() {
         const from = msg.key.remoteJid;
         if (from === 'status@broadcast') return;
 
-        const msgType = Object.keys(msg.message)[0];
-        const content = msg.message[msgType];
-        
         const messageContent = 
             msg.message?.conversation || 
-            content?.text || 
-            content?.caption || 
-            content?.contentText || 
             msg.message?.extendedTextMessage?.text || 
+            msg.message?.imageMessage?.caption || 
+            msg.message?.videoMessage?.caption || 
             '';
 
         console.log(`[Message] From: ${from} | Content: ${messageContent}`);
@@ -118,6 +114,4 @@ async function connect() {
     });
 }
 
-connect().catch(err => {
-    process.exit(1);
-});
+connect().catch(() => process.exit(1));
