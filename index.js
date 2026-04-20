@@ -56,11 +56,11 @@ async function connect() {
     const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
 
     const client = makeWASocket({
-        logger: pino({ level: 'silent' }),
+        logger: pino({ level: 'debug' }), // Changed to debug to see events
         printQRInTerminal: true,
         auth: {
             creds: state.creds,
-            keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' })),
+            keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'debug' })),
         },
         browser: Browsers.ubuntu('Chrome'),
         generateHighQualityLinkPreview: false,
@@ -72,9 +72,10 @@ async function connect() {
 
     client.ev.on('creds.update', saveCreds);
 
+    // Debug all events
     client.ev.on('connection.update', ({ connection, lastDisconnect, qr }) => {
         if (qr) {
-            console.log('[Toxic-MD] QR Code received, scan to login');
+            console.log('[Toxic-MD] QR Code received');
         }
         
         if (connection === 'close') {
@@ -84,70 +85,98 @@ async function connect() {
             if (reconnect) setTimeout(connect, 5000);
         } else if (connection === 'open') {
             console.log('[Toxic-MD] Connected ✅');
+            // Send a test message to yourself to verify
+            console.log('[Toxic-MD] Bot is ready and listening for messages');
         }
     });
 
-    // ─── FIXED Message handler with proper text extraction ───────────────────
+    // Listen to ALL events to debug
+    client.ev.on('messages.receipt', (update) => {
+        console.log('[Toxic-MD] Receipt event:', JSON.stringify(update).slice(0, 100));
+    });
+
+    client.ev.on('messages.update', (update) => {
+        console.log('[Toxic-MD] Messages update:', JSON.stringify(update).slice(0, 100));
+    });
+
+    // Main message handler
     client.ev.on('messages.upsert', async (messageData) => {
+        console.log('[Toxic-MD] ===== MESSAGE RECEIVED EVENT =====');
+        console.log('[Toxic-MD] Full event data:', JSON.stringify(messageData, null, 2).slice(0, 500));
+        
         try {
             const { messages, type } = messageData;
+            console.log('[Toxic-MD] Type:', type);
             
-            if (type !== 'notify') return;
+            if (!messages || messages.length === 0) {
+                console.log('[Toxic-MD] No messages in array');
+                return;
+            }
             
             const msg = messages[0];
-            if (!msg || !msg.key) return;
+            console.log('[Toxic-MD] Message key:', JSON.stringify(msg.key));
             
-            // Don't respond to own messages
-            if (msg.key.fromMe) return;
+            if (msg.key.fromMe) {
+                console.log('[Toxic-MD] Message from self, ignoring');
+                return;
+            }
             
             const from = msg.key.remoteJid;
-            if (!from) return;
+            console.log('[Toxic-MD] From:', from);
             
-            // PROPER text extraction - Baileys stores message in different places
+            // Extract text - log the entire message structure
+            console.log('[Toxic-MD] Full message:', JSON.stringify(msg.message, null, 2).slice(0, 500));
+            
             let body = '';
             
-            // Try all possible message types
             if (msg.message) {
-                // Direct conversation
                 if (msg.message.conversation) {
                     body = msg.message.conversation;
-                }
-                // Extended text message
-                else if (msg.message.extendedTextMessage) {
+                    console.log('[Toxic-MD] Found conversation text:', body);
+                } else if (msg.message.extendedTextMessage) {
                     body = msg.message.extendedTextMessage.text || '';
-                }
-                // For image/video with caption
-                else if (msg.message.imageMessage) {
-                    body = msg.message.imageMessage.caption || '';
-                }
-                else if (msg.message.videoMessage) {
-                    body = msg.message.videoMessage.caption || '';
-                }
-                // For protocol messages (sometimes contains text)
-                else if (msg.message.protocolMessage) {
-                    return; // Skip protocol messages
+                    console.log('[Toxic-MD] Found extended text:', body);
+                } else {
+                    console.log('[Toxic-MD] Unknown message type:', Object.keys(msg.message));
                 }
             }
             
-            console.log('[Toxic-MD] Raw body:', body);
+            if (!body) {
+                console.log('[Toxic-MD] No text body found');
+                return;
+            }
             
-            if (!body || !body.startsWith(PREFIX)) return;
+            if (!body.startsWith(PREFIX)) {
+                console.log('[Toxic-MD] No prefix match:', body);
+                return;
+            }
             
             const command = body.slice(PREFIX.length).trim().split(/\s+/)[0].toLowerCase();
-            console.log('[Toxic-MD] Command detected:', command);
+            console.log('[Toxic-MD] Command:', command);
             
             if (command === 'ping') {
-                console.log('[Toxic-MD] Responding to ping from:', from);
+                console.log('[Toxic-MD] Sending pong response');
                 await client.sendMessage(from, { text: '🏓 Pong!' });
-                console.log('[Toxic-MD] Response sent');
+                console.log('[Toxic-MD] Response sent successfully');
             }
         } catch (error) {
             console.error('[Toxic-MD] Error in message handler:', error);
+            console.error(error.stack);
         }
+    });
+    
+    // Also try to listen for raw events
+    client.ev.on('chats.upsert', (chats) => {
+        console.log('[Toxic-MD] Chats upsert event');
+    });
+    
+    client.ev.on('contacts.upsert', (contacts) => {
+        console.log('[Toxic-MD] Contacts upsert event');
     });
 }
 
 connect().catch(err => {
     console.error('[Toxic-MD] Fatal error:', err);
+    console.error(err.stack);
     process.exit(1);
 });
