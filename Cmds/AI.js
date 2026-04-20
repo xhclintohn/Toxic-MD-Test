@@ -519,7 +519,7 @@ dreaded({
     await client.sendMessage(m.chat, { react: { text: '❌', key: m.key } });
     m.reply(`╭───(    TOXIC-MD    )───\n├───≫ Eʀʀᴏʀ ≪───\n├ \n├ An error occurred while processing the file.\n╰──────────────────☉\n> ©𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐁𝐲 𝐱𝐡_𝐜𝐥𝐢𝐧𝐭𝐨𝐧`);
   }
-};
+});
 
 function generateToken(secretKey) {
   const timestamp = Date.now().toString();
@@ -558,7 +558,7 @@ async function transcribeWithTalknotes(buffer) {
     console.error('Talknotes error:', err.message);
     return null;
   }
-});
+}
 
 // ── vision
 dreaded({

@@ -824,9 +824,8 @@ dreaded({
             await m.reply(`📄 Current prefix: ${settings.prefix || 'No prefix set.'}\n\nUse _prefix null_ to remove the prefix or _prefix <any symbol>_ to set a specific prefix.`);
         }
     });
-};
+});
 
-*/);
 
 // ── restart
 dreaded({

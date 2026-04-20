@@ -613,7 +613,7 @@ dreaded({
     await client.sendMessage(m.chat, { react: { text: '❌', key: m.key } });
     m.reply(`╭───(    TOXIC-MD    )───\n├───≫ WALLPAPER ERROR ≪───\n├ \n├ Failed to fetch wallpapers. Site's probably dead.\n├ ${err.message}\n╰──────────────────☉\n> ©𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐁𝐲 𝐱𝐡_𝐜𝐥𝐢𝐧𝐭𝐨𝐧`);
   }
-};
+});
 
 
 // ── wiki
