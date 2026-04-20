@@ -18,11 +18,8 @@ function loadSession() {
     const sessionDir = path.join(__dirname, 'Session');
     const credsPath = path.join(sessionDir, 'creds.json');
     const sessionFile = path.join(__dirname, 'session.json');
-
     if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
-
     let sessionData = process.env.SESSION || '';
-
     if (!sessionData || sessionData === 'zokk') {
         if (fs.existsSync(sessionFile)) {
             try {
@@ -36,7 +33,6 @@ function loadSession() {
             } catch {}
         }
     }
-
     if (sessionData && sessionData !== 'zokk' && sessionData !== 'PASTE_YOUR_SESSION_ID_HERE') {
         try {
             const decoded = Buffer.from(sessionData, 'base64').toString('utf8');
@@ -45,8 +41,6 @@ function loadSession() {
         } catch (e) {
             console.log('[Toxic-MD] Session decode failed:', e.message);
         }
-    } else {
-        console.log('[Toxic-MD] No session found — will show QR code');
     }
 }
 
@@ -59,7 +53,6 @@ const PREFIX = '.';
 
 async function connect() {
     loadSession();
-
     const { state, saveCreds } = await useMultiFileAuthState(path.join(__dirname, 'Session'));
 
     const client = makeWASocket.default({
@@ -72,7 +65,7 @@ async function connect() {
         browser: Browsers.ubuntu('Chrome'),
         generateHighQualityLinkPreview: false,
         syncFullHistory: false,
-        markOnlineOnConnect: false,
+        markOnlineOnConnect: true,
     });
 
     client.ev.on('creds.update', saveCreds);
@@ -80,9 +73,7 @@ async function connect() {
     client.ev.on('connection.update', ({ connection, lastDisconnect }) => {
         if (connection === 'close') {
             const code = new Boom(lastDisconnect?.error)?.output?.statusCode;
-            const reconnect = code !== DisconnectReason.loggedOut;
-            console.log('[Toxic-MD] Disconnected, code:', code, '| reconnect:', reconnect);
-            if (reconnect) connect();
+            if (code !== DisconnectReason.loggedOut) connect();
         } else if (connection === 'open') {
             console.log('[Toxic-MD] Connected ✅');
         }
@@ -95,31 +86,38 @@ async function connect() {
 
         const from = msg.key.remoteJid;
         if (from === 'status@broadcast') return;
+
+        const msgType = Object.keys(msg.message)[0];
+        const content = msg.message[msgType];
         
-        const messageContent = msg.message?.extendedTextMessage?.text || msg.message?.conversation || msg.message?.imageMessage?.caption || msg.message?.videoMessage?.caption || '';
-        
+        const messageContent = 
+            msg.message?.conversation || 
+            content?.text || 
+            content?.caption || 
+            content?.contentText || 
+            msg.message?.extendedTextMessage?.text || 
+            '';
+
         console.log(`[Message] From: ${from} | Content: ${messageContent}`);
 
         if (msg.key.fromMe) return;
 
-        await client.readMessages([msg.key]);
+        if (messageContent.startsWith(PREFIX)) {
+            await client.readMessages([msg.key]);
+            const args = messageContent.slice(PREFIX.length).trim().split(/\s+/);
+            const cmd = args[0].toLowerCase();
 
-        if (!messageContent.startsWith(PREFIX)) return;
-
-        const args = messageContent.slice(PREFIX.length).trim().split(/\s+/);
-        const cmd = args[0].toLowerCase();
-
-        if (cmd === 'ping') {
-            const t = Date.now();
-            await client.sendPresenceUpdate('composing', from);
-            await client.sendMessage(from, {
-                text: `🏓 *Pong!*\n⚡ Speed: ${Date.now() - t}ms`
-            }, { quoted: msg });
+            if (cmd === 'ping') {
+                const t = Date.now();
+                await client.sendPresenceUpdate('composing', from);
+                await client.sendMessage(from, {
+                    text: `🏓 *Pong!*\n⚡ Speed: ${Date.now() - t}ms`
+                }, { quoted: msg });
+            }
         }
     });
 }
 
 connect().catch(err => {
-    console.error('[Toxic-MD] Fatal error:', err);
     process.exit(1);
 });
