@@ -36,7 +36,7 @@ const { DateTime } = require('luxon');
 const { commands, totalCommands } = require('../Handler/commandHandler');
 const path = require('path');
 
-const sessionName = path.join(__dirname, 'Session');
+const sessionName = path.join(__dirname, '..', 'Session');
 
 if (!fs.existsSync(sessionName)) {
   fs.mkdirSync(sessionName, { recursive: true });
