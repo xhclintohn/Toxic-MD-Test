@@ -1,7 +1,20 @@
-const { readdirSync, statSync, unlinkSync, existsSync, mkdirSync } = require('fs');
-const { join } = require('path');
+// src/features.js — merged from features/ directory
+  // All database requires updated from ../database/config to ./database
 
-const TMP_DIRS = ['./tmp', './temp'];
+  // ── shared requires (deduplicated) ───────────────────────────────────
+  const { readdirSync, statSync, unlinkSync, existsSync, mkdirSync } = require('fs');
+  const { join } = require('path');
+  const { getGroupSettings, getWarnCount, addWarn, resetWarn, getWarnLimit } = require('./database');
+  const { getConversationHistory, addConversationMessage, clearConversationHistory } = require('./database');
+  const { commands, aliases } = require('./commands');
+  const { getCachedAllowed, getCachedSettingsSync } = require('../lib/settingsCache');
+  const { getFakeQuoted } = require('../lib/fakeQuoted');
+  const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
+  const axios = require('axios');
+  const fetch = require('node-fetch');
+
+  // ── cleanup ───────────────────────────────────────────────────────────
+  const TMP_DIRS = ['./tmp', './temp'];
 const MAX_AGE_MS = 3 * 60 * 60 * 1000;
 const INTERVAL_MS = 6 * 60 * 60 * 1000;
 
@@ -36,12 +49,12 @@ function startCleanupScheduler() {
 
 startCleanupScheduler();
 
-const status_saver = async (client, m, Owner, prefix) => {
+  // ── status_saver ──────────────────────────────────────────────────────
+  module.exports = async (client, m, Owner, prefix) => {
   };
-  
-const { getGroupSettings } = require("../database/config");
 
-const gcPresence = async (client, m) => {
+  // ── gcPresence ────────────────────────────────────────────────────────
+  const gcPresence = async (client, m) => {
     if (!m.isGroup) return;
 
     const groupSettings = await getGroupSettings(m.chat);
@@ -56,9 +69,9 @@ const gcPresence = async (client, m) => {
         }
     }
 };
-const { getGroupSettings } = require("../database/config");
 
-const DEV_NUMBER = '254114885159';
+  // ── antitag ───────────────────────────────────────────────────────────
+  const DEV_NUMBER = '254114885159';
 const normalizeNumber = (jid) => {
     if (!jid) return '';
     return jid.split('@')[0].split(':')[0].replace(/\D/g, '') + '@s.whatsapp.net';
@@ -83,9 +96,8 @@ const antitag = async (client, m, isBotAdmin, itsMe, isAdmin, Owner, body) => {
     }
 };
 
-const { getGroupSettings, getWarnCount, addWarn, resetWarn, getWarnLimit } = require("../database/config");
-
-const DEV_NUMBER = '254114885159';
+  // ── antilink ──────────────────────────────────────────────────────────
+  const DEV_NUMBER = '254114885159';
 
 const normalizeJid = (jid) => {
     if (!jid) return '';
@@ -149,9 +161,8 @@ const antilink = async (client, m) => {
     }
 };
 
-const { getGroupSettings, getWarnCount, addWarn, resetWarn, getWarnLimit } = require("../database/config");
-
-const normalizeJid = (jid) => {
+  // ── antistatusmention ─────────────────────────────────────────────────
+  const normalizeJid = (jid) => {
     if (!jid) return '';
     const decoded = jid.split('@');
     const user = decoded[0].split(':')[0];
@@ -246,14 +257,8 @@ const antistatusmention = async (client, m) => {
     }
 };
 
-const axios = require('axios');
-const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
-const { commands, aliases } = require('./commands');
-const { getConversationHistory, addConversationMessage, clearConversationHistory } = require('./database');
-const { getCachedAllowed } = require('../lib/settingsCache');
-const { getFakeQuoted } = require('../lib/fakeQuoted');
-
-let GROQ_KEY = '';
+  // ── autoai ────────────────────────────────────────────────────────────
+  let GROQ_KEY = '';
 try { GROQ_KEY = require('../keys').GROQ_API_KEY || ''; } catch {}
 
 const MEM_TTL = 60 * 60 * 1000;
@@ -632,10 +637,8 @@ const autoai = async (context) => {
     }
 };
 
-const fetch = require('node-fetch');
-const { getFakeQuoted } = require('../lib/fakeQuoted');
-
-const DEV_NUMBER = '254114885159';
+  // ── toxicai ───────────────────────────────────────────────────────────
+  const DEV_NUMBER = '254114885159';
 const GH_USERNAME = 'xhclintohn';
 const HISTORY_TTL = 6 * 60 * 60 * 1000;
 const MAX_HISTORY = 30;
@@ -1164,7 +1167,8 @@ const toxicaiFeature = async (context) => {
     }
 };
 
-const afkMap = new Map();
+  // ── afk ───────────────────────────────────────────────────────────────
+  const afkMap = new Map();
 
 const afkFeature = async (client, m) => {
     if (!m || !m.sender) return;
@@ -1205,8 +1209,7 @@ module.exports.setAfk = (num, reason) => afkMap.set(num, { reason, time: Date.no
 module.exports.removeAfk = (num) => afkMap.delete(num);
 module.exports.isAfk = (num) => afkMap.has(num);
 
-const { getCachedSettingsSync } = require('../lib/settingsCache');
-
+  // ── autolike ──────────────────────────────────────────────────────────
   const _EMOJIS = ['❤️','🔥','😂','😍','👏','🥰','💯','😭','🤣','🙏','👌','💪','🤩','😎','🥳','✨','💀','🤯','😤','💅','👀','🎉','😈','🤫','🫶'];
 
   async function autolike(client, message) {
@@ -1226,4 +1229,9 @@ const { getCachedSettingsSync } = require('../lib/settingsCache');
       await client.readMessages([key]);
     } catch {}
   }
-module.exports = { status_saver, gcPresence, antitag, antilink, antistatusmention, autoai, toxicaiFeature, afkFeature, autolike };
+
+  module.exports = autolike;
+
+  // ── exports ───────────────────────────────────────────────────────────
+  module.exports = { status_saver, gcPresence, antitag, antilink, antistatusmention, autoai, toxicaiFeature, afkFeature, autolike };
+  
