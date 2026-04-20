@@ -77,7 +77,7 @@ function emojiToTwemojiUrl(emoji) {
         .filter(cp => cp !== 'fe0f');
     return `https://cdn.jsdelivr.net/gh/jdecked/twemoji@latest/assets/72x72/${codepoints.join('-')}.png`;
 }
-const { Sticker, createSticker, StickerTypes } = require('wa-sticker-formatter')
+const { createSticker } = require('wa-sticker-formatter')
 
 
 

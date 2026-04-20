@@ -12,7 +12,7 @@ const { generateWAMessageFromContent } = require('@whiskeysockets/baileys');
 const { default: makeWASocket } = require('@whiskeysockets/baileys');
 
 const ALLOWED = /^[0-9+\-*/.()%^ ]+$/;
-const { generateWAMessageFromContent, proto } = require('@whiskeysockets/baileys');
+const { proto } = require('@whiskeysockets/baileys');
 
 const EFFECT_CMDS = [
     'glossysilver','glitchtext','advancedglow','neonglitch','gradienttext','glowingtext',
@@ -78,7 +78,6 @@ function applyStyle(text, styleId) {
 
 const totalStyles = Object.keys(fancyStyles).length;
 const fetch = require('node-fetch');
-  const { getSettings } = require('../lib/fastSettings');
 const {
     default: Toxic_Tech,
     useMultiFileAuthState,

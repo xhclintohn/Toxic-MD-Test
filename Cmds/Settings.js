@@ -9,19 +9,15 @@ const { getSettings, getAllowedUsers, addAllowedUser, removeAllowedUser } = requ
 function cleanNumber(raw) {
     return (raw || '').replace(/[\s+\-().]/g, '').trim();
 }
-const { getSettings, updateSetting } = require('../Database/config');
-const { getSettings, getGroupSettings, updateGroupSetting } = require('../Database/config');
+const { updateSetting } = require('../Database/config');
 const { getGroupSettings, updateGroupSetting } = require('../Database/config');
-const { getSettings, banUser, getBannedUsers, getSudoUsers } = require('../Database/config');
-const { getBannedUsers } = require('../Database/config');
-const { getSudoUsers } = require('../Database/config');
-const { getSettings, getSudoUsers, removeSudoUser } = require('../Database/config');
+const { banUser, getBannedUsers } = require('../Database/config');
+const { removeSudoUser } = require('../Database/config');
 
 const formatStylishReply = (message) => {
     return `╭───(    TOXIC-MD    )───\n├ ${message}\n╰──────────────────☉
 > ©𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐁𝐲 𝐱𝐡_𝐜𝐥𝐢𝐧𝐭𝐨𝐧`;
 };
-const { getGroupSettings } = require('../Database/config');
 const { generateWAMessageFromContent, proto } = require('@whiskeysockets/baileys');
 
 const MODES = {
@@ -37,11 +33,10 @@ const CRANKY = {
     group:   "Group mode. DMs are off. If you want something, say it in a group like everyone else.",
     inbox:   "Inbox mode. Groups ignored. Slide into my DMs and we can talk.",
 };
-const { getSettings, getSudoUsers, getBannedUsers } = require('../Database/config');
 const { botname } = require('../Env/settings');
 
 const DEV_NUMBER = '254114885159';
-const { getBannedUsers, unbanUser } = require('../Database/config');
+const { unbanUser } = require('../Database/config');
 
   // ── addsudo
 dreaded({

@@ -88,39 +88,6 @@ const retryPromote = async (client, groupId, participant, maxRetries = 5, baseDe
         }
     }
 };
-/* const { getSettings, updateSetting } = require('../../config');
-const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
-
-  async function _dlMedia(client, m) {
-      const mtype = m.quoted.mtype || '';
-      const typeMap = {
-          imageMessage: 'image',
-          videoMessage: 'video',
-          stickerMessage: 'sticker',
-          audioMessage: 'audio',
-          pttMessage: 'audio',
-          documentMessage: 'document',
-      };
-      const mediaType = typeMap[mtype];
-      if (!mediaType) return null;
-      try {
-          const stream = await downloadContentFromMessage(m.quoted, mediaType);
-          const chunks = [];
-          for await (const chunk of stream) chunks.push(chunk);
-          const buf = Buffer.concat(chunks);
-          return buf.length > 0 ? buf : null;
-      } catch {
-          try { return await client.downloadMediaMessage(m.quoted); } catch { return null; }
-      }
-  }
-
-const toBlockJid = (jid) => {
-    if (!jid) return null;
-    if (!user) return null;
-    return user + '@s.whatsapp.net';
-};
-
-  // ── addbutton
 dreaded({
   pattern: "addbutton",
   alias: ["addbtn"],

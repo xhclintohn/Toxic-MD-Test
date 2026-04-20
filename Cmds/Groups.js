@@ -74,7 +74,6 @@ const resolveTarget = (jid, participants) => {
 const BOX = (title, lines) => {
     return `╭───(    TOXIC-MD    )───\n├───≫ ${title} ≪───\n├\n${body}\n╰──────────────────☉\n> ©𝐏𝐨𝐰𝐞𝐫𝐞𝐝 𝐁𝐲 𝐱𝐡_𝐜𝐥𝐢𝐧𝐭𝐨𝐧`;
 };
-const { getGroupSettings, updateGroupSetting } = require('../Database/config');
 const { getSettings } = require('../Database/config');
 
 const formatStylishReply = (message) => {
@@ -85,7 +84,7 @@ const { generateWAMessageFromContent, proto } = require('@whiskeysockets/baileys
 const polls = new Map();
 const { resetWarn, getWarnCount } = require('../Database/config');
 const fs = require('fs');
-const { setWarnLimit, getWarnLimit } = require('../Database/config');
+const { setWarnLimit } = require('../Database/config');
 
 const normalizeJid = (jid) => {
     if (!jid) return '';
@@ -133,8 +132,7 @@ async function ghApiGet(token, path) {
     });
 }
 const path = require('path');
-const { getWarnCount, addWarn, resetWarn, getGroupSettings } = require('../Database/config');
-const { getWarnCount, getWarnLimit } = require('../Database/config');
+const { addWarn } = require('../Database/config');
 
 
 

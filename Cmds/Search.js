@@ -20,17 +20,20 @@ async function githubUserStalk(user) {
 }
 
 async function githubRepoSearch(query) {
+    const response = await fetch(`https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&sort=stars&order=desc`, { headers: getHeaders() });
     if (!response.ok) throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
     return response.json();
 }
 
 async function githubCodeSearch(query) {
+    const response = await fetch(`https://api.github.com/search/code?q=${encodeURIComponent(query)}`, { headers: getHeaders() });
     if (!response.ok) throw new Error(`GitHub API error: ${response.status}`);
     return response.json();
 }
 
 async function githubTrending() {
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const response = await fetch(`https://api.github.com/search/repositories?q=created:>${weekAgo}&sort=stars&order=desc`, { headers: getHeaders() });
     if (!response.ok) throw new Error(`GitHub API error: ${response.status}`);
     return response.json();
 }

@@ -15,7 +15,7 @@ function isSensitive(key) {
 
 
 
-const { herokuAppName: HEROKU_APP_NAME, getHerokuApiKey } = require('../Env/settings');
+const { herokuAppName: HEROKU_APP_NAME } = require('../Env/settings');
 const HEROKU_API_KEY = getHerokuApiKey();
 const { generateWAMessageFromContent } = require('@whiskeysockets/baileys');
 

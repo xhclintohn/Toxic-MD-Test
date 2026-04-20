@@ -15,9 +15,6 @@ const fsPromises = require('fs').promises;
 const os = require('os');
 const FormData = require('form-data');
 const { queue } = require('async');
-/*
-
-  // ── base64
 dreaded({
   pattern: "base64",
   alias: ["tobase64","b64encode","encode64"],
