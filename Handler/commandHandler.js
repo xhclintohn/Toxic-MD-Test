@@ -240,9 +240,7 @@
           }
 
           if (m?.key && client?.sendMessage && emoji) {
-              try {
-                  await client.sendMessage(m.chat, { react: { text: emoji, key: m.key } });
-              } catch {}
+              client.sendMessage(m.chat, { react: { text: emoji, key: m.key } }).catch(() => {});
           }
 
           await handler(context);
