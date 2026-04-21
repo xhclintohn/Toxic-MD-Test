@@ -19,29 +19,26 @@ const PORT = process.env.PORT || 3000;
 app.get('/', (_, res) => res.send('Toxic-MD is alive 🤙'));
 app.listen(PORT, () => console.log(`[Toxic-MD] Web server on port ${PORT}`));
 
-// ─── Pre-load commands into memory for INSTANT access ─────────────
-const COMMANDS = {
-    '.ping': '🏓 Pong!',
-    '.hi': '👋 Hello!',
-    '.hello': '👋 Hi there!',
-    '.time': () => new Date().toLocaleTimeString(),
-    '.date': () => new Date().toLocaleDateString(),
-};
+// Keep alive ping
+setInterval(() => {
+    fetch(`http://localhost:${PORT}`).catch(() => {});
+}, 25000);
 
 const PREFIX = '.';
 
 async function connect() {
+    // Session setup
     const sessionDir = path.join(__dirname, 'Session');
     if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
 
-    // Load session from env
     const sessionData = process.env.SESSION || '';
-    if (sessionData && sessionData !== 'zokk') {
+    if (sessionData && sessionData !== 'zokk' && sessionData !== 'PASTE_YOUR_SESSION_ID_HERE') {
         try {
             fs.writeFileSync(
                 path.join(sessionDir, 'creds.json'),
                 Buffer.from(sessionData, 'base64').toString('utf8')
             );
+            console.log('[Toxic-MD] Session loaded');
         } catch(e) {}
     }
 
@@ -57,42 +54,64 @@ async function connect() {
         browser: Browsers.ubuntu('Chrome'),
         generateHighQualityLinkPreview: false,
         syncFullHistory: false,
-        markOnlineOnConnect: false,
-        defaultQueryTimeoutMs: 5000,
-        keepAliveIntervalMs: 30000,
-        // CRITICAL OPTIMIZATIONS
-        transactionOpts: { maxRetries: 0 },
-        emitOwnEvents: false,
-        fireInitQueries: false,
+        markOnlineOnConnect: true,
+        defaultQueryTimeoutMs: 3000,
+        keepAliveIntervalMs: 20000,
     });
 
     client.ev.on('creds.update', saveCreds);
 
-    client.ev.on('connection.update', ({ connection, lastDisconnect }) => {
+    client.ev.on('connection.update', ({ connection, lastDisconnect, qr }) => {
+        if (qr) {
+            console.log('[Toxic-MD] Scan QR with WhatsApp');
+            console.log(qr);
+        }
+        
         if (connection === 'close') {
             const code = new Boom(lastDisconnect?.error)?.output?.statusCode;
-            if (code !== DisconnectReason.loggedOut) setTimeout(connect, 5000);
+            if (code !== DisconnectReason.loggedOut) {
+                console.log('[Toxic-MD] Reconnecting...');
+                setTimeout(connect, 3000);
+            } else {
+                console.log('[Toxic-MD] Logged out');
+            }
         } else if (connection === 'open') {
-            console.log('[Toxic-MD] ✅ Connected');
+            console.log('[Toxic-MD] ✅ Connected and ready!');
         }
     });
 
-    // ─── OPTIMIZED: Direct string matching, no async in event loop ───
-    client.ev.on('messages.upsert', (msgData) => {
-        const msg = msgData.messages[0];
-        if (!msg?.message) return;
-        
-        // Extract text using fastest method
-        let text = msg.message.conversation || msg.message.extendedTextMessage?.text;
-        if (!text || text[0] !== PREFIX) return;
-        
-        // Direct command lookup
-        const response = COMMANDS[text];
-        if (response) {
-            const reply = typeof response === 'function' ? response() : response;
-            client.sendMessage(msg.key.remoteJid, { text: reply });
+    // SIMPLE WORKING MESSAGE HANDLER
+    client.ev.on('messages.upsert', async (m) => {
+        try {
+            const msg = m.messages[0];
+            if (!msg || !msg.message) return;
+            
+            // Get the chat ID
+            const chatId = msg.key.remoteJid;
+            if (!chatId) return;
+            
+            // Get message text
+            let text = '';
+            if (msg.message.conversation) {
+                text = msg.message.conversation;
+            } else if (msg.message.extendedTextMessage) {
+                text = msg.message.extendedTextMessage.text;
+            }
+            
+            if (!text) return;
+            
+            // Check command
+            if (text === '.ping') {
+                await client.sendMessage(chatId, { text: '🏓 Pong!' });
+                console.log('[Toxic-MD] Pong sent to', chatId);
+            }
+        } catch (err) {
+            // Silent
         }
     });
 }
 
-connect().catch(console.error);
+connect().catch(err => {
+    console.error('[Toxic-MD] Error:', err.message);
+    setTimeout(connect, 5000);
+});
