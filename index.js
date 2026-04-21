@@ -19,41 +19,40 @@ const PORT = process.env.PORT || 3000;
 app.get('/', (_, res) => res.send('Toxic-MD is alive 🤙'));
 app.listen(PORT, () => console.log(`[Toxic-MD] Web server on port ${PORT}`));
 
-// ─── Session loading ──────────────────────────────────────────────
+const PREFIX = '.';
+const SESSION_DIR = path.join(__dirname, 'Session');
+
+// ─── Session management with auto-clean on error ──────────────────
 function loadSessionFromEnv() {
-    const sessionDir = path.join(__dirname, 'Session');
-    const credsPath = path.join(sessionDir, 'creds.json');
-    
-    if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
+    if (!fs.existsSync(SESSION_DIR)) fs.mkdirSync(SESSION_DIR, { recursive: true });
 
     const sessionData = process.env.SESSION || '';
     
     if (sessionData && sessionData !== 'zokk' && sessionData !== 'PASTE_YOUR_SESSION_ID_HERE') {
         try {
+            const credsPath = path.join(SESSION_DIR, 'creds.json');
             fs.writeFileSync(credsPath, Buffer.from(sessionData, 'base64').toString('utf8'), 'utf8');
             console.log('[Toxic-MD] Session loaded ✅');
+            return true;
         } catch (e) {
-            console.log('[Toxic-MD] Session decode failed:', e.message);
+            console.log('[Toxic-MD] Session decode failed');
+            return false;
         }
-    } else {
-        console.log('[Toxic-MD] No session in env — will show QR code');
     }
+    return false;
 }
-
-const PREFIX = '.';
 
 async function connect() {
     loadSessionFromEnv();
 
-    const sessionDir = path.join(__dirname, 'Session');
-    const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
+    const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
 
     const client = makeWASocket({
-        logger: pino({ level: 'error' }),
+        logger: pino({ level: 'silent' }),
         printQRInTerminal: true,
         auth: {
             creds: state.creds,
-            keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'error' })),
+            keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' })),
         },
         browser: Browsers.ubuntu('Chrome'),
         generateHighQualityLinkPreview: false,
@@ -61,6 +60,8 @@ async function connect() {
         markOnlineOnConnect: true,
         defaultQueryTimeoutMs: undefined,
         keepAliveIntervalMs: 10000,
+        // Ignore decryption errors
+        ignoreUnknownUnuploadedPrekeys: true,
     });
 
     client.ev.on('creds.update', saveCreds);
@@ -68,56 +69,62 @@ async function connect() {
     client.ev.on('connection.update', ({ connection, lastDisconnect }) => {
         if (connection === 'close') {
             const code = new Boom(lastDisconnect?.error)?.output?.statusCode;
-            const reconnect = code !== DisconnectReason.loggedOut;
-            console.log('[Toxic-MD] Disconnected, code:', code, '| reconnect:', reconnect);
-            if (reconnect) setTimeout(connect, 5000);
+            if (code === DisconnectReason.loggedOut) {
+                console.log('[Toxic-MD] Session expired! Clearing session...');
+                // Delete corrupted session
+                if (fs.existsSync(SESSION_DIR)) {
+                    fs.rmSync(SESSION_DIR, { recursive: true, force: true });
+                }
+                console.log('[Toxic-MD] Please restart and scan new QR code');
+                process.exit(1);
+            } else {
+                console.log('[Toxic-MD] Reconnecting...');
+                setTimeout(connect, 5000);
+            }
         } else if (connection === 'open') {
             console.log('[Toxic-MD] Connected ✅');
         }
     });
 
-    // ─── FAST MESSAGE HANDLER - Responds to ALL messages ───────────────
-    client.ev.on('messages.upsert', async (messageData) => {
+    // ─── INSTANT RESPONSE - No async, no await, no decryption checks ───
+    client.ev.on('messages.upsert', (messageData) => {
         try {
             const msg = messageData.messages[0];
-            if (!msg) return;
+            if (!msg || !msg.message) return;
             
-            // Get the message content correctly
-            let body = '';
-            let messageType = Object.keys(msg.message || {})[0];
+            // Extract text instantly
+            let text = '';
+            const msgContent = msg.message;
             
-            if (messageType === 'conversation') {
-                body = msg.message.conversation;
-            } else if (messageType === 'extendedTextMessage') {
-                body = msg.message.extendedTextMessage.text;
-            } else if (messageType === 'imageMessage') {
-                body = msg.message.imageMessage.caption || '';
-            } else if (messageType === 'videoMessage') {
-                body = msg.message.videoMessage.caption || '';
+            if (msgContent.conversation) {
+                text = msgContent.conversation;
+            } else if (msgContent.extendedTextMessage?.text) {
+                text = msgContent.extendedTextMessage.text;
+            } else {
+                return;
             }
             
-            if (!body) return;
+            if (!text.startsWith(PREFIX)) return;
             
-            const from = msg.key.remoteJid;
-            if (!from) return;
+            const cmd = text.slice(1).split(' ')[0].toLowerCase();
             
-            // Check prefix
-            if (!body.startsWith(PREFIX)) return;
-            
-            const cmd = body.slice(PREFIX.length).trim().split(/\s+/)[0].toLowerCase();
-            
-            // Commands - responds instantly
+            // Fire and forget - NO AWAIT
             if (cmd === 'ping') {
-                await client.sendMessage(from, { text: '🏓 Pong!' });
+                client.sendMessage(msg.key.remoteJid, { text: '🏓 Pong!' });
             }
-            
-        } catch (error) {
-            // Silent fail for speed
-        }
+        } catch(e) {}
     });
 }
 
+// Clear corrupted session on startup if needed
+if (process.env.CLEAR_SESSION === 'true') {
+    console.log('[Toxic-MD] Clearing session as requested...');
+    if (fs.existsSync(SESSION_DIR)) {
+        fs.rmSync(SESSION_DIR, { recursive: true, force: true });
+    }
+}
+
 connect().catch(err => {
-    console.error('[Toxic-MD] Fatal error:', err);
-    process.exit(1);
+    console.error('[Toxic-MD] Error:', err.message);
+    setTimeout(connect, 5000);
 });
