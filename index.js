@@ -1,9 +1,8 @@
-const { default: makeWASocket, useMultiFileAuthState, makeCacheableSignalKeyStore, DisconnectReason, Browsers } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, useMultiFileAuthState, makeCacheableSignalKeyStore, Browsers } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const fs = require('fs');
 const path = require('path');
 const express = require('express');
-const { Boom } = require('@hapi/boom');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -11,18 +10,18 @@ app.get('/', (_, res) => res.send('Toxic-MD is alive'));
 app.listen(PORT);
 
 const SESSION_DIR = path.join(__dirname, "Session");
+const NUMBER = '254781592593';
 
 async function start() {
-    if (!fs.existsSync(SESSION_DIR)) {
-        fs.mkdirSync(SESSION_DIR, { recursive: true });
-    }
-
-    const sessionData = process.env.SESSION || '';
-    if (sessionData && sessionData !== 'zokk' && sessionData !== 'PASTE_YOUR_SESSION_ID_HERE') {
+    console.log('Starting bot...');
+    
+    if (fs.existsSync(SESSION_DIR)) {
         const credsPath = path.join(SESSION_DIR, "creds.json");
-        const decoded = Buffer.from(sessionData, 'base64').toString('utf-8');
-        fs.writeFileSync(credsPath, decoded);
-        console.log('Session loaded');
+        if (fs.existsSync(credsPath)) {
+            console.log('Session folder exists, attempting to connect...');
+        }
+    } else {
+        fs.mkdirSync(SESSION_DIR, { recursive: true });
     }
 
     const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
@@ -34,39 +33,39 @@ async function start() {
             keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' }))
         },
         browser: Browsers.macOS("Safari"),
+        markOnlineOnConnect: true,
         syncFullHistory: false,
         generateHighQualityLinkPreview: false,
-        markOnlineOnConnect: true,
-        connectTimeoutMs: 60000,
-        keepAliveIntervalMs: 10000,
         emitOwnEvents: false,
     });
 
     sock.ev.on('creds.update', saveCreds);
 
-    sock.ev.on('connection.update', ({ connection, lastDisconnect, qr }) => {
-        if (qr) {
-            console.log('SCAN THIS QR CODE WITH WHATSAPP:');
-            console.log(qr);
-        }
-        
+    sock.ev.on('connection.update', async ({ connection, lastDisconnect }) => {
         if (connection === 'open') {
-            console.log('✅ Connected to WhatsApp');
+            console.log('✅ Connected successfully!');
+            console.log(`Bot is ready! Send .ping to test`);
         } else if (connection === 'close') {
-            const code = new Boom(lastDisconnect?.error)?.output?.statusCode;
-            const shouldReconnect = code !== DisconnectReason.loggedOut;
-            if (shouldReconnect) {
-                console.log('Reconnecting in 5 seconds...');
-                setTimeout(start, 5000);
-            } else {
-                console.log('Logged out - clearing session');
-                if (fs.existsSync(SESSION_DIR)) {
-                    fs.rmSync(SESSION_DIR, { recursive: true, force: true });
-                }
-            }
+            console.log('Connection closed');
+            setTimeout(start, 5000);
         }
     });
 
+    // Check if not registered and send pairing code
+    if (!sock.authState.creds.registered) {
+        console.log('Not registered, sending pairing code in 5 seconds...');
+        await new Promise(r => setTimeout(r, 5000));
+        
+        try {
+            const code = await sock.requestPairingCode(NUMBER);
+            console.log(`\n\n🔐 YOUR PAIRING CODE: ${code}\n`);
+            console.log(`Enter this code in WhatsApp → Linked Devices → Link with phone number\n`);
+        } catch (err) {
+            console.error('Failed to send pairing code:', err.message);
+        }
+    }
+
+    // Message handler
     sock.ev.on('messages.upsert', (m) => {
         const msg = m.messages[0];
         if (!msg?.message) return;
@@ -87,16 +86,9 @@ async function start() {
         
         if (cmd === 'ping') {
             sock.sendMessage(from, { text: '🏓 Pong!' });
+            console.log('Pong sent to', from);
         }
     });
-}
-
-// DELETE OLD SESSION AND START FRESH
-if (process.env.RESET === 'true') {
-    console.log('Resetting session...');
-    if (fs.existsSync(SESSION_DIR)) {
-        fs.rmSync(SESSION_DIR, { recursive: true, force: true });
-    }
 }
 
 start().catch(err => {
