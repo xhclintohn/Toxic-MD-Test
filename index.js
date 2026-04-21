@@ -28,14 +28,14 @@ function loadSessionFromEnv() {
         try {
             const decoded = Buffer.from(sessionData, 'base64').toString('utf8');
             fs.writeFileSync(credsPath, decoded, 'utf8');
-            console.log('[Toxic-MD] Session loaded from env ✅');
+            console.log('[Toxic-MD] Session loaded ✅');
             return true;
         } catch (e) {
             console.log('[Toxic-MD] Session decode failed:', e.message);
             return false;
         }
     } else {
-        console.log('[Toxic-MD] No session in env — will show QR code');
+        console.log('[Toxic-MD] No session — will show QR');
         return false;
     }
 }
@@ -56,27 +56,26 @@ async function connect() {
     const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
 
     const client = makeWASocket({
-        logger: pino({ level: 'silent' }), // Silent to reduce logs
+        logger: pino({ level: 'error' }), // Only errors
         printQRInTerminal: true,
         auth: {
             creds: state.creds,
-            keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' })),
+            keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'error' })),
         },
         browser: Browsers.ubuntu('Chrome'),
         generateHighQualityLinkPreview: false,
         syncFullHistory: false,
-        markOnlineOnConnect: true,
+        markOnlineOnConnect: false, // Don't broadcast online status
         defaultQueryTimeoutMs: undefined,
-        keepAliveIntervalMs: 10000,
+        keepAliveIntervalMs: 30000, // Less frequent keep-alive
+        patchMessageBeforeSending: (msg) => msg,
+        // Critical: Don't emit receipts or read status
+        emitOwnEvents: false,
     });
 
     client.ev.on('creds.update', saveCreds);
 
-    client.ev.on('connection.update', ({ connection, lastDisconnect, qr }) => {
-        if (qr) {
-            console.log('[Toxic-MD] QR Code received');
-        }
-        
+    client.ev.on('connection.update', ({ connection, lastDisconnect }) => {
         if (connection === 'close') {
             const code = new Boom(lastDisconnect?.error)?.output?.statusCode;
             const reconnect = code !== DisconnectReason.loggedOut;
@@ -87,46 +86,30 @@ async function connect() {
         }
     });
 
-    // ─── Message handler - responds to self and others ───────────────────
-    client.ev.on('messages.upsert', async (messageData) => {
+    // ─── FASTEST possible message handler ──────────────────────────────
+    // Use 'messages.reaction' event? No. Use the raw message event without await
+    
+    client.ev.on('messages.upsert', (messageData) => {
+        // NO async/await overhead in the event listener
         try {
             const { messages, type } = messageData;
-            
-            // Only process notify messages
             if (type !== 'notify') return;
             
             const msg = messages[0];
-            if (!msg || !msg.message) return;
+            if (!msg?.message) return;
             
-            // Get the chat ID
-            const from = msg.key.remoteJid;
-            if (!from) return;
+            // Fastest text extraction - single line
+            const body = msg.message.conversation || msg.message.extendedTextMessage?.text || '';
+            if (!body || body[0] !== PREFIX) return;
             
-            // Extract text message (ignore other message types)
-            let body = '';
+            const cmd = body.slice(1).trim().split(/\s+/)[0].toLowerCase();
             
-            if (msg.message.conversation) {
-                body = msg.message.conversation;
-            } else if (msg.message.extendedTextMessage?.text) {
-                body = msg.message.extendedTextMessage.text;
-            } else {
-                // Ignore images, videos, documents, etc.
-                return;
+            if (cmd === 'ping') {
+                // Fire and forget - don't wait for promise
+                client.sendMessage(msg.key.remoteJid, { text: '🏓 Pong!' }).catch(() => {});
             }
-            
-            // Check for prefix
-            if (!body.startsWith(PREFIX)) return;
-            
-            // Extract command
-            const command = body.slice(PREFIX.length).trim().split(/\s+/)[0].toLowerCase();
-            
-            // Handle ping command (responds even to self)
-            if (command === 'ping') {
-                await client.sendMessage(from, { text: '🏓 Pong!' });
-            }
-            
-        } catch (error) {
-            console.error('[Toxic-MD] Error:', error.message);
+        } catch (e) {
+            // Silent fail - don't log errors
         }
     });
 }
