@@ -1,113 +1,61 @@
-const express = require('express');
+const { default: makeWASocket, useMultiFileAuthState, makeCacheableSignalKeyStore, Browsers } = require('@whiskeysockets/baileys');
+const pino = require('pino');
 const fs = require('fs');
 const path = require('path');
-const pino = require('pino');
-const { makeid } = require('./id');
+const express = require('express');
 
-const {
-    default: makeWASocket,
-    useMultiFileAuthState,
-    makeCacheableSignalKeyStore,
-    Browsers
-} = require('@whiskeysockets/baileys');
+const app = express();
+const PORT = process.env.PORT || 3000;
+app.get('/', (_, res) => res.send('Toxic-MD is alive'));
+app.listen(PORT);
 
-const router = express.Router();
-const sessionDir = path.join(__dirname, "temp");
+const SESSION_DIR = path.join(__dirname, "Session");
 
-function removeFile(path) {
-    if (fs.existsSync(path)) fs.rmSync(path, { recursive: true, force: true });
+async function start() {
+    if (!fs.existsSync(SESSION_DIR)) fs.mkdirSync(SESSION_DIR, { recursive: true });
+
+    const sessionData = process.env.SESSION || '';
+    if (sessionData && sessionData !== 'zokk' && sessionData !== 'PASTE_YOUR_SESSION_ID_HERE') {
+        const credsPath = path.join(SESSION_DIR, "creds.json");
+        fs.writeFileSync(credsPath, Buffer.from(sessionData, 'base64').toString('utf-8'));
+        console.log('Session loaded');
+    }
+
+    const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
+
+    const sock = makeWASocket({
+        logger: pino({ level: 'silent' }),
+        auth: {
+            creds: state.creds,
+            keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' }))
+        },
+        browser: Browsers.macOS("Safari"),
+        markOnlineOnConnect: false,
+        syncFullHistory: false,
+        generateHighQualityLinkPreview: false,
+        emitOwnEvents: false,
+    });
+
+    sock.ev.on('creds.update', saveCreds);
+    
+    sock.ev.on('connection.update', ({ connection }) => {
+        if (connection === 'open') console.log('Connected!');
+    });
+
+    sock.ev.on('messages.upsert', (m) => {
+        const msg = m.messages[0];
+        if (!msg?.message) return;
+        
+        const text = msg.message.conversation || msg.message.extendedTextMessage?.text;
+        if (!text || text[0] !== '.') return;
+        
+        const cmd = text.slice(1).split(' ')[0].toLowerCase();
+        const from = msg.key.remoteJid;
+        
+        if (cmd === 'ping') {
+            sock.sendMessage(from, { text: '🏓 Pong!' });
+        }
+    });
 }
 
-router.get('/', async (req, res) => {
-    const id = makeid();
-    const num = (req.query.number || '').replace(/[^0-9]/g, '');
-    const tempDir = path.join(sessionDir, id);
-    let responseSent = false;
-
-    try {
-        const { state, saveCreds } = await useMultiFileAuthState(tempDir);
-
-        const sock = makeWASocket({
-            version: [2, 3000, 1015901307],
-            logger: pino({ level: 'silent' }),
-            printQRInTerminal: false,
-            auth: {
-                creds: state.creds,
-                keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' }))
-            },
-            browser: Browsers.macOS("Safari"),
-            syncFullHistory: false,
-            generateHighQualityLinkPreview: false,
-            markOnlineOnConnect: false,
-            connectTimeoutMs: 30000,
-            keepAliveIntervalMs: 30000,
-            emitOwnEvents: false,
-        });
-
-        sock.ev.on('creds.update', saveCreds);
-
-        if (!sock.authState.creds.registered) {
-            const code = await sock.requestPairingCode(num);
-            if (!responseSent) {
-                res.json({ code: code });
-                responseSent = true;
-            }
-        }
-
-        const userJid = num + '@s.whatsapp.net';
-        let sessionSent = false;
-
-        sock.ev.on('connection.update', async ({ connection }) => {
-            if (connection === 'open' && !sessionSent) {
-                sessionSent = true;
-                
-                await new Promise(r => setTimeout(r, 5000));
-                
-                const credsPath = path.join(tempDir, "creds.json");
-                let sessionData = null;
-                
-                for (let i = 0; i < 15; i++) {
-                    if (fs.existsSync(credsPath)) {
-                        const data = fs.readFileSync(credsPath);
-                        if (data && data.length > 100) {
-                            sessionData = data;
-                            break;
-                        }
-                    }
-                    await new Promise(r => setTimeout(r, 2000));
-                }
-                
-                if (sessionData) {
-                    const base64 = Buffer.from(sessionData).toString('base64');
-                    await sock.sendMessage(userJid, { text: base64 });
-                    await sock.sendMessage(userJid, { text: 'Session ID sent successfully!' });
-                } else {
-                    await sock.sendMessage(userJid, { text: 'Failed to generate session. Try again.' });
-                }
-                
-                await new Promise(r => setTimeout(r, 2000));
-                sock.ws.close();
-                removeFile(tempDir);
-            }
-        });
-
-        setTimeout(() => {
-            if (!sessionSent) {
-                sock.ws.close();
-                removeFile(tempDir);
-                if (!responseSent) {
-                    res.status(500).json({ code: 'Timeout' });
-                }
-            }
-        }, 60000);
-
-    } catch (err) {
-        console.error('Error:', err.message);
-        removeFile(tempDir);
-        if (!responseSent) {
-            res.status(500).json({ code: err.message });
-        }
-    }
-});
-
-module.exports = router;
+start().catch(console.error);
