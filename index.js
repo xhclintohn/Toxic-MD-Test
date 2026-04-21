@@ -12,15 +12,12 @@ app.listen(PORT);
 const SESSION_DIR = path.join(__dirname, "Session");
 const NUMBER = '254781592593';
 
+let pairingCodeSent = false;
+
 async function start() {
     console.log('Starting bot...');
     
-    if (fs.existsSync(SESSION_DIR)) {
-        const credsPath = path.join(SESSION_DIR, "creds.json");
-        if (fs.existsSync(credsPath)) {
-            console.log('Session folder exists, attempting to connect...');
-        }
-    } else {
+    if (!fs.existsSync(SESSION_DIR)) {
         fs.mkdirSync(SESSION_DIR, { recursive: true });
     }
 
@@ -37,6 +34,8 @@ async function start() {
         syncFullHistory: false,
         generateHighQualityLinkPreview: false,
         emitOwnEvents: false,
+        connectTimeoutMs: 120000,
+        keepAliveIntervalMs: 30000,
     });
 
     sock.ev.on('creds.update', saveCreds);
@@ -44,24 +43,37 @@ async function start() {
     sock.ev.on('connection.update', async ({ connection, lastDisconnect }) => {
         if (connection === 'open') {
             console.log('✅ Connected successfully!');
-            console.log(`Bot is ready! Send .ping to test`);
+            
+            // Save session to env format
+            const credsPath = path.join(SESSION_DIR, "creds.json");
+            if (fs.existsSync(credsPath)) {
+                const data = fs.readFileSync(credsPath);
+                const base64 = Buffer.from(data).toString('base64');
+                console.log('\n\n========= COPY THIS TO SESSION ENV VAR =========\n');
+                console.log(base64);
+                console.log('\n================================================\n');
+            }
         } else if (connection === 'close') {
-            console.log('Connection closed');
+            console.log('Connection closed, reconnecting in 5s...');
             setTimeout(start, 5000);
         }
     });
 
-    // Check if not registered and send pairing code
-    if (!sock.authState.creds.registered) {
-        console.log('Not registered, sending pairing code in 5 seconds...');
-        await new Promise(r => setTimeout(r, 5000));
+    // Send pairing code if not registered
+    if (!sock.authState.creds.registered && !pairingCodeSent) {
+        pairingCodeSent = true;
+        console.log('Requesting pairing code...');
+        
+        await new Promise(r => setTimeout(r, 3000));
         
         try {
             const code = await sock.requestPairingCode(NUMBER);
-            console.log(`\n\n🔐 YOUR PAIRING CODE: ${code}\n`);
-            console.log(`Enter this code in WhatsApp → Linked Devices → Link with phone number\n`);
+            console.log(`\n\n🔐 PAIRING CODE: ${code}\n`);
+            console.log(`Open WhatsApp → Settings → Linked Devices → Link with phone number\n`);
+            console.log(`Enter code: ${code}\n`);
         } catch (err) {
-            console.error('Failed to send pairing code:', err.message);
+            console.error('Pairing error:', err.message);
+            pairingCodeSent = false;
         }
     }
 
@@ -86,7 +98,7 @@ async function start() {
         
         if (cmd === 'ping') {
             sock.sendMessage(from, { text: '🏓 Pong!' });
-            console.log('Pong sent to', from);
+            console.log('Pong sent');
         }
     });
 }
