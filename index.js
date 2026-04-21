@@ -13,63 +13,58 @@ const pino = require('pino');
 const { Boom } = require('@hapi/boom');
 const express = require('express');
 
-// ─── Session loading from env var ────────────────────────────────────
+// ─── Session loading ──────────────────────────────────────────────
 function loadSessionFromEnv() {
     const sessionDir = path.join(__dirname, 'Session');
     const credsPath = path.join(sessionDir, 'creds.json');
     
-    if (!fs.existsSync(sessionDir)) {
-        fs.mkdirSync(sessionDir, { recursive: true });
-    }
+    if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
 
     const sessionData = process.env.SESSION || '';
     
     if (sessionData && sessionData !== 'zokk' && sessionData !== 'PASTE_YOUR_SESSION_ID_HERE') {
         try {
-            const decoded = Buffer.from(sessionData, 'base64').toString('utf8');
-            fs.writeFileSync(credsPath, decoded, 'utf8');
+            fs.writeFileSync(credsPath, Buffer.from(sessionData, 'base64').toString('utf8'), 'utf8');
             console.log('[Toxic-MD] Session loaded ✅');
-            return true;
         } catch (e) {
-            console.log('[Toxic-MD] Session decode failed:', e.message);
-            return false;
+            console.log('[Toxic-MD] Session decode failed');
         }
-    } else {
-        console.log('[Toxic-MD] No session — will show QR');
-        return false;
     }
 }
 
-// ─── Express keep-alive ──────────────────────────────────────────────
+// ─── Express ──────────────────────────────────────────────────────
 const app = express();
 const PORT = process.env.PORT || 3000;
 app.get('/', (_, res) => res.send('Toxic-MD is alive 🤙'));
 app.listen(PORT, () => console.log(`[Toxic-MD] Web server on port ${PORT}`));
 
-// ─── WhatsApp connection ───────────────────────────────────────────
+// ─── Bot Configuration ────────────────────────────────────────────
 const PREFIX = '.';
+const COMMANDS = new Map([['ping', '🏓 Pong!']]); // Pre-defined commands
 
 async function connect() {
     loadSessionFromEnv();
 
-    const sessionDir = path.join(__dirname, 'Session');
-    const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
+    const { state, saveCreds } = await useMultiFileAuthState(path.join(__dirname, 'Session'));
 
     const client = makeWASocket({
-        logger: pino({ level: 'silent' }),
+        logger: pino({ level: 'fatal' }), // Almost no logging
         printQRInTerminal: true,
         auth: {
             creds: state.creds,
-            keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' })),
+            keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'fatal' })),
         },
         browser: Browsers.ubuntu('Chrome'),
         generateHighQualityLinkPreview: false,
         syncFullHistory: false,
-        markOnlineOnConnect: true,
-        defaultQueryTimeoutMs: undefined,
-        keepAliveIntervalMs: 10000,
-        // Don't try to decrypt own messages
-        shouldSyncHistoryMessage: () => false,
+        markOnlineOnConnect: false, // Don't broadcast online status
+        defaultQueryTimeoutMs: 5000, // Shorter timeout
+        keepAliveIntervalMs: 30000, // Less frequent pings
+        patchMessageBeforeSending: (msg) => msg,
+        emitOwnEvents: false,
+        // Optimize for speed
+        transactionOpts: { maxRetries: 0 },
+        qrTimeout: 20000,
     });
 
     client.ev.on('creds.update', saveCreds);
@@ -77,53 +72,45 @@ async function connect() {
     client.ev.on('connection.update', ({ connection, lastDisconnect }) => {
         if (connection === 'close') {
             const code = new Boom(lastDisconnect?.error)?.output?.statusCode;
-            const reconnect = code !== DisconnectReason.loggedOut;
-            console.log('[Toxic-MD] Disconnected, code:', code, '| reconnect:', reconnect);
-            if (reconnect) setTimeout(connect, 5000);
+            if (code !== DisconnectReason.loggedOut) setTimeout(connect, 5000);
         } else if (connection === 'open') {
             console.log('[Toxic-MD] Connected ✅');
         }
     });
 
-    // ─── Message handler ──────────────────────────────────────────────
-    client.ev.on('messages.upsert', async (messageData) => {
+    // ─── FASTEST MESSAGE HANDLER - No async/await, No overhead ─────
+    let lastMsgTime = 0;
+    const COOLDOWN = 100; // 100ms cooldown to prevent spam
+    
+    client.ev.on('messages.upsert', (messageData) => {
+        // Anti-spam
+        const now = Date.now();
+        if (now - lastMsgTime < COOLDOWN) return;
+        lastMsgTime = now;
+        
         try {
-            const { messages, type } = messageData;
-            if (type !== 'notify') return;
+            const msg = messageData.messages?.[0];
+            if (!msg?.message || msg.key.fromMe) return;
             
-            const msg = messages[0];
-            if (!msg?.message) return;
+            // Direct access - no function calls
+            const body = msg.message.conversation || 
+                        msg.message.extendedTextMessage?.text;
             
-            // Skip if no remoteJid
-            const from = msg.key.remoteJid;
-            if (!from) return;
+            if (!body || body[0] !== PREFIX) return;
             
-            // Extract text
-            let body = '';
-            if (msg.message.conversation) {
-                body = msg.message.conversation;
-            } else if (msg.message.extendedTextMessage?.text) {
-                body = msg.message.extendedTextMessage.text;
-            } else {
-                return;
+            // Fast command extraction
+            const spaceIdx = body.indexOf(' ');
+            const cmd = (spaceIdx === -1 ? body.slice(1) : body.slice(1, spaceIdx)).toLowerCase();
+            
+            // Command lookup
+            const response = COMMANDS.get(cmd);
+            if (response) {
+                // Fire and forget - don't wait
+                client.sendMessage(msg.key.remoteJid, { text: response })
+                    .catch(() => {});
             }
-            
-            // Check prefix
-            if (!body.startsWith(PREFIX)) return;
-            
-            const cmd = body.slice(PREFIX.length).trim().split(/\s+/)[0].toLowerCase();
-            
-            if (cmd === 'ping') {
-                // Send response without quoting to avoid decryption issues
-                await client.sendMessage(from, { text: '🏓 Pong!' });
-            }
-        } catch (error) {
-            // Silent fail
-        }
+        } catch(e) {}
     });
 }
 
-connect().catch(err => {
-    console.error('[Toxic-MD] Fatal error:', err);
-    setTimeout(connect, 5000);
-});
+connect().catch(() => setTimeout(connect, 5000));
