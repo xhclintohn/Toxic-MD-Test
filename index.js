@@ -29,7 +29,6 @@ async function start() {
 
     const sock = makeWASocket({
         logger: pino({ level: 'silent' }),
-        printQRInTerminal: true,
         auth: {
             creds: state.creds,
             keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' }))
@@ -47,7 +46,8 @@ async function start() {
 
     sock.ev.on('connection.update', ({ connection, lastDisconnect, qr }) => {
         if (qr) {
-            console.log('Scan this QR code with WhatsApp');
+            console.log('SCAN THIS QR CODE WITH WHATSAPP:');
+            console.log(qr);
         }
         
         if (connection === 'open') {
@@ -56,10 +56,13 @@ async function start() {
             const code = new Boom(lastDisconnect?.error)?.output?.statusCode;
             const shouldReconnect = code !== DisconnectReason.loggedOut;
             if (shouldReconnect) {
-                console.log('Reconnecting...');
+                console.log('Reconnecting in 5 seconds...');
                 setTimeout(start, 5000);
             } else {
-                console.log('Logged out');
+                console.log('Logged out - clearing session');
+                if (fs.existsSync(SESSION_DIR)) {
+                    fs.rmSync(SESSION_DIR, { recursive: true, force: true });
+                }
             }
         }
     });
@@ -86,6 +89,14 @@ async function start() {
             sock.sendMessage(from, { text: '🏓 Pong!' });
         }
     });
+}
+
+// DELETE OLD SESSION AND START FRESH
+if (process.env.RESET === 'true') {
+    console.log('Resetting session...');
+    if (fs.existsSync(SESSION_DIR)) {
+        fs.rmSync(SESSION_DIR, { recursive: true, force: true });
+    }
 }
 
 start().catch(err => {
