@@ -11,7 +11,7 @@
     },
     "dependencies": {
         "@hapi/boom": "^10.0.1",
-        "@whiskeysockets/baileys": "npm:toxic-baileys@1.0.6",
+        "@whiskeysockets/baileys": "latest",
         "express": "^4.21.0",
         "pino": "^8.19.0"
     }
