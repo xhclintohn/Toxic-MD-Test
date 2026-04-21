@@ -14,50 +14,39 @@ const store = makeInMemoryStore({ logger: pino().child({ level: "silent", stream
 // Express Server Setup
 const app = express();
 const PORT = process.env.PORT || 3000;
+app.use(express.static(path.join(__dirname, 'public')));
 app.get('/', (_, res) => res.send('Toxic-MD is alive 🤙'));
-app.listen(PORT, () => console.log(`[Toxic-MD] Web server on port ${PORT}`));
-
-// Keep alive ping
-setInterval(() => {
-    fetch(`http://localhost:${PORT}`).catch(() => {});
-}, 25000);
-
-const PREFIX = ".";
-const SESSION_DIR = path.join(__dirname, "Session");
+app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
 
 /**
- * Loads session from environment variable
+ * Handles session authentication by writing the session string 
+ * from environment variable to a local creds.json file.
  */
-async function loadSessionFromEnv() {
+async function authentication() {
     try {
-        if (!fs.existsSync(SESSION_DIR)) {
-            fs.mkdirSync(SESSION_DIR, { recursive: true });
-        }
+        const session = process.env.SESSION || '';
+        const credsPath = path.join(__dirname, "Session", "creds.json");
 
-        const sessionData = process.env.SESSION || '';
-        
-        if (sessionData && sessionData !== 'zokk' && sessionData !== 'PASTE_YOUR_SESSION_ID_HERE') {
-            const credsPath = path.join(SESSION_DIR, "creds.json");
-            const decoded = Buffer.from(sessionData, 'base64').toString('utf-8');
-            fs.writeFileSync(credsPath, decoded);
-            console.log("[Toxic-MD] Session loaded from env ✅");
-            return true;
-        } else {
-            console.log("[Toxic-MD] No session in env - will show QR code");
-            return false;
+        if (!fs.existsSync(credsPath) || session !== "zokk") {
+            console.log("Establishing connection...");
+            if (!fs.existsSync(path.join(__dirname, "Session"))) {
+                fs.mkdirSync(path.join(__dirname, "Session"), { recursive: true });
+            }
+            if (session && session !== 'zokk' && session !== 'PASTE_YOUR_SESSION_ID_HERE') {
+                await fs.promises.writeFile(credsPath, Buffer.from(session, 'base64').toString('utf-8'));
+            }
         }
     } catch (e) {
-        console.log("[Toxic-MD] Session load error:", e.message);
-        return false;
+        console.log("Session Invalid: " + e);
     }
 }
 
 async function connect() {
-    await loadSessionFromEnv();
-    
-    const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
+    await authentication();
+    const { state, saveCreds } = await useMultiFileAuthState(path.join(__dirname, "Session"));
 
     const sock = makeWASocket({
+        version: [2, 3000, 1015901307],
         logger: pino({ level: "silent" }),
         browser: ['Toxic-MD', "Chrome", "1.0.0"],
         printQRInTerminal: true,
@@ -68,8 +57,6 @@ async function connect() {
         generateHighQualityLinkPreview: false,
         syncFullHistory: false,
         markOnlineOnConnect: true,
-        defaultQueryTimeoutMs: undefined,
-        keepAliveIntervalMs: 10000,
     });
 
     store.bind(sock.ev);
@@ -78,7 +65,7 @@ async function connect() {
 
     sock.ev.on("connection.update", ({ connection, lastDisconnect, qr }) => {
         if (qr) {
-            console.log("[Toxic-MD] Scan QR Code with WhatsApp");
+            console.log("Scan QR Code with WhatsApp");
         }
         
         if (connection === "close") {
@@ -115,9 +102,9 @@ async function connect() {
                 return;
             }
             
-            if (!text.startsWith(PREFIX)) return;
+            if (!text.startsWith(".")) return;
             
-            const cmd = text.slice(PREFIX.length).trim().split(/\s+/)[0].toLowerCase();
+            const cmd = text.slice(1).trim().split(/\s+/)[0].toLowerCase();
             
             // Commands
             if (cmd === "ping") {
