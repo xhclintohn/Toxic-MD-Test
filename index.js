@@ -13,6 +13,12 @@ const pino = require('pino');
 const { Boom } = require('@hapi/boom');
 const express = require('express');
 
+// ─── Express ──────────────────────────────────────────────────────
+const app = express();
+const PORT = process.env.PORT || 3000;
+app.get('/', (_, res) => res.send('Toxic-MD is alive 🤙'));
+app.listen(PORT, () => console.log(`[Toxic-MD] Web server on port ${PORT}`));
+
 // ─── Session loading ──────────────────────────────────────────────
 function loadSessionFromEnv() {
     const sessionDir = path.join(__dirname, 'Session');
@@ -26,91 +32,118 @@ function loadSessionFromEnv() {
         try {
             fs.writeFileSync(credsPath, Buffer.from(sessionData, 'base64').toString('utf8'), 'utf8');
             console.log('[Toxic-MD] Session loaded ✅');
+            return true;
         } catch (e) {
-            console.log('[Toxic-MD] Session decode failed');
+            console.log('[Toxic-MD] Session decode failed:', e.message);
+            return false;
         }
+    } else {
+        console.log('[Toxic-MD] No session in env — will show QR code');
+        return false;
     }
 }
 
-// ─── Express ──────────────────────────────────────────────────────
-const app = express();
-const PORT = process.env.PORT || 3000;
-app.get('/', (_, res) => res.send('Toxic-MD is alive 🤙'));
-app.listen(PORT, () => console.log(`[Toxic-MD] Web server on port ${PORT}`));
-
-// ─── Bot Configuration ────────────────────────────────────────────
 const PREFIX = '.';
-const COMMANDS = new Map([['ping', '🏓 Pong!']]); // Pre-defined commands
 
 async function connect() {
     loadSessionFromEnv();
 
-    const { state, saveCreds } = await useMultiFileAuthState(path.join(__dirname, 'Session'));
+    const sessionDir = path.join(__dirname, 'Session');
+    const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
 
     const client = makeWASocket({
-        logger: pino({ level: 'fatal' }), // Almost no logging
+        logger: pino({ level: 'silent' }),
         printQRInTerminal: true,
         auth: {
             creds: state.creds,
-            keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'fatal' })),
+            keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' })),
         },
         browser: Browsers.ubuntu('Chrome'),
         generateHighQualityLinkPreview: false,
         syncFullHistory: false,
-        markOnlineOnConnect: false, // Don't broadcast online status
-        defaultQueryTimeoutMs: 5000, // Shorter timeout
-        keepAliveIntervalMs: 30000, // Less frequent pings
-        patchMessageBeforeSending: (msg) => msg,
-        emitOwnEvents: false,
-        // Optimize for speed
-        transactionOpts: { maxRetries: 0 },
-        qrTimeout: 20000,
+        markOnlineOnConnect: true,
+        defaultQueryTimeoutMs: undefined,
+        keepAliveIntervalMs: 10000,
     });
 
     client.ev.on('creds.update', saveCreds);
 
-    client.ev.on('connection.update', ({ connection, lastDisconnect }) => {
+    client.ev.on('connection.update', ({ connection, lastDisconnect, qr }) => {
+        if (qr) {
+            console.log('[Toxic-MD] QR Code received - scan with WhatsApp');
+        }
+        
         if (connection === 'close') {
             const code = new Boom(lastDisconnect?.error)?.output?.statusCode;
-            if (code !== DisconnectReason.loggedOut) setTimeout(connect, 5000);
+            const reconnect = code !== DisconnectReason.loggedOut;
+            console.log('[Toxic-MD] Disconnected, code:', code, '| reconnect:', reconnect);
+            if (reconnect) setTimeout(connect, 5000);
         } else if (connection === 'open') {
-            console.log('[Toxic-MD] Connected ✅');
+            console.log('[Toxic-MD] Connected ✅ Bot is ready!');
         }
     });
 
-    // ─── FASTEST MESSAGE HANDLER - No async/await, No overhead ─────
-    let lastMsgTime = 0;
-    const COOLDOWN = 100; // 100ms cooldown to prevent spam
-    
-    client.ev.on('messages.upsert', (messageData) => {
-        // Anti-spam
-        const now = Date.now();
-        if (now - lastMsgTime < COOLDOWN) return;
-        lastMsgTime = now;
-        
+    // ─── WORKING Message handler with debug ───────────────────────────
+    client.ev.on('messages.upsert', async (messageData) => {
         try {
-            const msg = messageData.messages?.[0];
-            if (!msg?.message || msg.key.fromMe) return;
+            const { messages, type } = messageData;
             
-            // Direct access - no function calls
-            const body = msg.message.conversation || 
-                        msg.message.extendedTextMessage?.text;
+            // Log every message for debugging
+            console.log('[DEBUG] Message received, type:', type);
             
-            if (!body || body[0] !== PREFIX) return;
+            if (type !== 'notify') return;
             
-            // Fast command extraction
-            const spaceIdx = body.indexOf(' ');
-            const cmd = (spaceIdx === -1 ? body.slice(1) : body.slice(1, spaceIdx)).toLowerCase();
-            
-            // Command lookup
-            const response = COMMANDS.get(cmd);
-            if (response) {
-                // Fire and forget - don't wait
-                client.sendMessage(msg.key.remoteJid, { text: response })
-                    .catch(() => {});
+            const msg = messages[0];
+            if (!msg || !msg.message) {
+                console.log('[DEBUG] No message content');
+                return;
             }
-        } catch(e) {}
+            
+            const from = msg.key.remoteJid;
+            console.log('[DEBUG] From:', from);
+            console.log('[DEBUG] FromMe:', msg.key.fromMe);
+            
+            // Don't respond to own messages
+            if (msg.key.fromMe) {
+                console.log('[DEBUG] Skipping own message');
+                return;
+            }
+            
+            // Extract text
+            let body = '';
+            if (msg.message.conversation) {
+                body = msg.message.conversation;
+            } else if (msg.message.extendedTextMessage) {
+                body = msg.message.extendedTextMessage.text || '';
+            } else {
+                console.log('[DEBUG] Not a text message');
+                return;
+            }
+            
+            console.log('[DEBUG] Message body:', body);
+            
+            if (!body.startsWith(PREFIX)) {
+                console.log('[DEBUG] No prefix match');
+                return;
+            }
+            
+            const cmd = body.slice(PREFIX.length).trim().split(/\s+/)[0].toLowerCase();
+            console.log('[DEBUG] Command:', cmd);
+            
+            if (cmd === 'ping') {
+                console.log('[DEBUG] Sending pong response');
+                await client.sendMessage(from, { text: '🏓 Pong!' });
+                console.log('[DEBUG] Pong sent successfully');
+            }
+            
+        } catch (error) {
+            console.error('[DEBUG] Error in message handler:', error.message);
+            console.error(error.stack);
+        }
     });
 }
 
-connect().catch(() => setTimeout(connect, 5000));
+connect().catch(err => {
+    console.error('[Toxic-MD] Fatal error:', err);
+    process.exit(1);
+});
