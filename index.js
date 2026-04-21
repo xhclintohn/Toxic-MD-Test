@@ -1,19 +1,17 @@
-'use strict';
+"use strict";
 
-const fs = require('fs');
-const path = require('path');
-const {
-    default: makeWASocket,
-    useMultiFileAuthState,
-    DisconnectReason,
-    makeCacheableSignalKeyStore,
-    Browsers,
-} = require('@whiskeysockets/baileys');
-const pino = require('pino');
-const { Boom } = require('@hapi/boom');
+const { default: makeWASocket, useMultiFileAuthState, makeInMemoryStore, makeCacheableSignalKeyStore, DisconnectReason } = require("@whiskeysockets/baileys");
+const pino = require("pino");
+const fs = require("fs");
+const path = require("path");
 const express = require('express');
+const { Boom } = require('@hapi/boom');
 
-// ─── Express ──────────────────────────────────────────────────────
+// Initialize Store and Logger
+const logger = pino({ level: 'silent' });
+const store = makeInMemoryStore({ logger: pino().child({ level: "silent", stream: "store" }) });
+
+// Express Server Setup
 const app = express();
 const PORT = process.env.PORT || 3000;
 app.get('/', (_, res) => res.send('Toxic-MD is alive 🤙'));
@@ -24,94 +22,118 @@ setInterval(() => {
     fetch(`http://localhost:${PORT}`).catch(() => {});
 }, 25000);
 
-const PREFIX = '.';
+const PREFIX = ".";
+const SESSION_DIR = path.join(__dirname, "Session");
+
+/**
+ * Loads session from environment variable
+ */
+async function loadSessionFromEnv() {
+    try {
+        if (!fs.existsSync(SESSION_DIR)) {
+            fs.mkdirSync(SESSION_DIR, { recursive: true });
+        }
+
+        const sessionData = process.env.SESSION || '';
+        
+        if (sessionData && sessionData !== 'zokk' && sessionData !== 'PASTE_YOUR_SESSION_ID_HERE') {
+            const credsPath = path.join(SESSION_DIR, "creds.json");
+            const decoded = Buffer.from(sessionData, 'base64').toString('utf-8');
+            fs.writeFileSync(credsPath, decoded);
+            console.log("[Toxic-MD] Session loaded from env ✅");
+            return true;
+        } else {
+            console.log("[Toxic-MD] No session in env - will show QR code");
+            return false;
+        }
+    } catch (e) {
+        console.log("[Toxic-MD] Session load error:", e.message);
+        return false;
+    }
+}
 
 async function connect() {
-    // Session setup
-    const sessionDir = path.join(__dirname, 'Session');
-    if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
+    await loadSessionFromEnv();
+    
+    const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
 
-    const sessionData = process.env.SESSION || '';
-    if (sessionData && sessionData !== 'zokk' && sessionData !== 'PASTE_YOUR_SESSION_ID_HERE') {
-        try {
-            fs.writeFileSync(
-                path.join(sessionDir, 'creds.json'),
-                Buffer.from(sessionData, 'base64').toString('utf8')
-            );
-            console.log('[Toxic-MD] Session loaded');
-        } catch(e) {}
-    }
-
-    const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
-
-    const client = makeWASocket({
-        logger: pino({ level: 'silent' }),
+    const sock = makeWASocket({
+        logger: pino({ level: "silent" }),
+        browser: ['Toxic-MD', "Chrome", "1.0.0"],
         printQRInTerminal: true,
         auth: {
             creds: state.creds,
-            keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' })),
+            keys: makeCacheableSignalKeyStore(state.keys, logger),
         },
-        browser: Browsers.ubuntu('Chrome'),
         generateHighQualityLinkPreview: false,
         syncFullHistory: false,
         markOnlineOnConnect: true,
-        defaultQueryTimeoutMs: 3000,
-        keepAliveIntervalMs: 20000,
+        defaultQueryTimeoutMs: undefined,
+        keepAliveIntervalMs: 10000,
     });
 
-    client.ev.on('creds.update', saveCreds);
+    store.bind(sock.ev);
 
-    client.ev.on('connection.update', ({ connection, lastDisconnect, qr }) => {
+    sock.ev.on("creds.update", saveCreds);
+
+    sock.ev.on("connection.update", ({ connection, lastDisconnect, qr }) => {
         if (qr) {
-            console.log('[Toxic-MD] Scan QR with WhatsApp');
-            console.log(qr);
+            console.log("[Toxic-MD] Scan QR Code with WhatsApp");
         }
         
-        if (connection === 'close') {
+        if (connection === "close") {
             const code = new Boom(lastDisconnect?.error)?.output?.statusCode;
-            if (code !== DisconnectReason.loggedOut) {
-                console.log('[Toxic-MD] Reconnecting...');
-                setTimeout(connect, 3000);
-            } else {
-                console.log('[Toxic-MD] Logged out');
+            const reconnect = code !== DisconnectReason.loggedOut;
+            console.log("[Toxic-MD] Disconnected, code:", code, "| reconnect:", reconnect);
+            if (reconnect) {
+                setTimeout(connect, 5000);
             }
-        } else if (connection === 'open') {
-            console.log('[Toxic-MD] ✅ Connected and ready!');
+        } else if (connection === "open") {
+            console.log("[Toxic-MD] Connected ✅ Bot is ready!");
         }
     });
 
-    // SIMPLE WORKING MESSAGE HANDLER
-    client.ev.on('messages.upsert', async (m) => {
+    // Message handler - INSTANT RESPONSE
+    sock.ev.on("messages.upsert", async (m) => {
         try {
-            const msg = m.messages[0];
-            if (!msg || !msg.message) return;
+            const { messages, type } = m;
+            if (type !== "notify") return;
             
-            // Get the chat ID
-            const chatId = msg.key.remoteJid;
-            if (!chatId) return;
+            const msg = messages[0];
+            if (!msg || !msg.message || !msg.key) return;
             
-            // Get message text
-            let text = '';
+            const from = msg.key.remoteJid;
+            if (!from) return;
+            
+            // Extract text FAST
+            let text = "";
             if (msg.message.conversation) {
                 text = msg.message.conversation;
-            } else if (msg.message.extendedTextMessage) {
+            } else if (msg.message.extendedTextMessage?.text) {
                 text = msg.message.extendedTextMessage.text;
+            } else {
+                return;
             }
             
-            if (!text) return;
+            if (!text.startsWith(PREFIX)) return;
             
-            // Check command
-            if (text === '.ping') {
-                await client.sendMessage(chatId, { text: '🏓 Pong!' });
-                console.log('[Toxic-MD] Pong sent to', chatId);
+            const cmd = text.slice(PREFIX.length).trim().split(/\s+/)[0].toLowerCase();
+            
+            // Commands
+            if (cmd === "ping") {
+                await sock.sendMessage(from, { text: "🏓 Pong!" });
             }
         } catch (err) {
-            // Silent
+            // Silent for speed
         }
     });
 }
 
+// Error handling to prevent crashes
+process.on("uncaughtException", () => {});
+process.on("unhandledRejection", () => {});
+
 connect().catch(err => {
-    console.error('[Toxic-MD] Error:', err.message);
+    console.error("[Toxic-MD] Fatal error:", err.message);
     setTimeout(connect, 5000);
 });
