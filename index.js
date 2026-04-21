@@ -56,21 +56,20 @@ async function connect() {
     const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
 
     const client = makeWASocket({
-        logger: pino({ level: 'error' }), // Only errors
+        logger: pino({ level: 'silent' }),
         printQRInTerminal: true,
         auth: {
             creds: state.creds,
-            keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'error' })),
+            keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' })),
         },
         browser: Browsers.ubuntu('Chrome'),
         generateHighQualityLinkPreview: false,
         syncFullHistory: false,
-        markOnlineOnConnect: false, // Don't broadcast online status
+        markOnlineOnConnect: true,
         defaultQueryTimeoutMs: undefined,
-        keepAliveIntervalMs: 30000, // Less frequent keep-alive
-        patchMessageBeforeSending: (msg) => msg,
-        // Critical: Don't emit receipts or read status
-        emitOwnEvents: false,
+        keepAliveIntervalMs: 10000,
+        // Don't try to decrypt own messages
+        shouldSyncHistoryMessage: () => false,
     });
 
     client.ev.on('creds.update', saveCreds);
@@ -86,11 +85,8 @@ async function connect() {
         }
     });
 
-    // ─── FASTEST possible message handler ──────────────────────────────
-    // Use 'messages.reaction' event? No. Use the raw message event without await
-    
-    client.ev.on('messages.upsert', (messageData) => {
-        // NO async/await overhead in the event listener
+    // ─── Message handler ──────────────────────────────────────────────
+    client.ev.on('messages.upsert', async (messageData) => {
         try {
             const { messages, type } = messageData;
             if (type !== 'notify') return;
@@ -98,23 +94,36 @@ async function connect() {
             const msg = messages[0];
             if (!msg?.message) return;
             
-            // Fastest text extraction - single line
-            const body = msg.message.conversation || msg.message.extendedTextMessage?.text || '';
-            if (!body || body[0] !== PREFIX) return;
+            // Skip if no remoteJid
+            const from = msg.key.remoteJid;
+            if (!from) return;
             
-            const cmd = body.slice(1).trim().split(/\s+/)[0].toLowerCase();
+            // Extract text
+            let body = '';
+            if (msg.message.conversation) {
+                body = msg.message.conversation;
+            } else if (msg.message.extendedTextMessage?.text) {
+                body = msg.message.extendedTextMessage.text;
+            } else {
+                return;
+            }
+            
+            // Check prefix
+            if (!body.startsWith(PREFIX)) return;
+            
+            const cmd = body.slice(PREFIX.length).trim().split(/\s+/)[0].toLowerCase();
             
             if (cmd === 'ping') {
-                // Fire and forget - don't wait for promise
-                client.sendMessage(msg.key.remoteJid, { text: '🏓 Pong!' }).catch(() => {});
+                // Send response without quoting to avoid decryption issues
+                await client.sendMessage(from, { text: '🏓 Pong!' });
             }
-        } catch (e) {
-            // Silent fail - don't log errors
+        } catch (error) {
+            // Silent fail
         }
     });
 }
 
 connect().catch(err => {
     console.error('[Toxic-MD] Fatal error:', err);
-    process.exit(1);
+    setTimeout(connect, 5000);
 });
