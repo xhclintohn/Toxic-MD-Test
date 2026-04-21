@@ -48,7 +48,7 @@ async function connect() {
     const sock = makeWASocket({
         version: [2, 3000, 1015901307],
         logger: pino({ level: "silent" }),
-        browser: ['Toxic-MD', "Chrome", "1.0.0"],
+        browser: ['Toxic-MD', "safari", "1.0.0"],
         printQRInTerminal: true,
         auth: {
             creds: state.creds,
