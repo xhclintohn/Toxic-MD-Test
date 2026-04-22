@@ -1,9 +1,16 @@
-const fs = require('fs');
-const path = require('path');
-const express = require('express');
-const pino = require('pino');
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, Browsers, makeCacheableSignalKeyStore } = require('@whiskeysockets/baileys');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import express from 'express';
+import pino from 'pino';
+import makeWASocket, {
+  useMultiFileAuthState,
+  DisconnectReason,
+  Browsers,
+  makeCacheableSignalKeyStore,
+} from '@whiskeysockets/baileys';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SESSION_DIR = path.join(__dirname, 'session');
 
 const PREFIX = process.env.PREFIX || '.';
@@ -46,8 +53,9 @@ async function loadCommands() {
   const files = fs.readdirSync(dir).filter(f => f.endsWith('.js'));
 
   for (const file of files) {
-    const cmd = require(`./commands/${file}`);
-    if (cmd.name && typeof cmd.execute === 'function') {
+    const mod = await import(`./commands/${file}`);
+    const cmd = mod.default;
+    if (cmd?.name && typeof cmd.execute === 'function') {
       commands.set(cmd.name.toLowerCase(), cmd);
       log.info(`Command loaded: ${PREFIX}${cmd.name}`);
     }
@@ -113,7 +121,6 @@ async function startBot() {
   sock.ev.on('connection.update', ({ connection, lastDisconnect }) => {
     if (connection === 'open') {
       log.success(`${BOT_NAME} connected ✅`);
-      console.log('🤖 Bot number:', sock.user.id);
     }
 
     if (connection === 'close') {
@@ -169,6 +176,6 @@ function extractText(m) {
   );
 }
 
-loadCommands();
+await loadCommands();
 startKeepAliveServer();
-startBot();
+await startBot();
