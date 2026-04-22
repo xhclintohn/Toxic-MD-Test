@@ -1,8 +1,7 @@
 {
   "name": "ToxicMD",
   "version": "1.0.0",
-  "description": "Minimal WhatsApp bot — session ID auth, single ping command for testing purposes.",
-  "type": "module",
+  "description": "WhatsApp bot",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
