@@ -3,12 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import express from 'express';
 import pino from 'pino';
-import makeWASocket, {
-  useMultiFileAuthState,
-  DisconnectReason,
-  Browsers,
-  makeCacheableSignalKeyStore,
-} from '@whiskeysockets/baileys';
+import * as baileys from '@whiskeysockets/baileys';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SESSION_DIR = path.join(__dirname, 'session');
@@ -85,22 +80,22 @@ async function startBot() {
     process.exit(1);
   }
 
-  const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
+  const { state, saveCreds } = await baileys.useMultiFileAuthState(SESSION_DIR);
 
   const versionRes = await fetch('https://raw.githubusercontent.com/WhiskeySockets/Baileys/master/src/Defaults/baileys-version.json');
   const { version } = await versionRes.json();
 
   log.info(`Connecting — Baileys v${version.join('.')} …`);
 
-  const sock = makeWASocket({
+  const sock = baileys.default({
     version,
     logger: baileysLogger,
     printQRInTerminal: false,
     auth: {
       creds: state.creds,
-      keys: makeCacheableSignalKeyStore(state.keys, baileysKeyLog),
+      keys: baileys.makeCacheableSignalKeyStore(state.keys, baileysKeyLog),
     },
-    browser: Browsers.macOS('Chrome'),
+    browser: baileys.Browsers.macOS('Chrome'),
     syncFullHistory: false,
     generateHighQualityLinkPreview: true,
     shouldIgnoreJid: jid => !!jid?.endsWith('@g.us'),
@@ -125,8 +120,8 @@ async function startBot() {
 
     if (connection === 'close') {
       const code = lastDisconnect?.error?.output?.statusCode;
-      const reason = DisconnectReason[code] ?? code;
-      const loggedOut = code === DisconnectReason.loggedOut;
+      const reason = baileys.DisconnectReason[code] ?? code;
+      const loggedOut = code === baileys.DisconnectReason.loggedOut;
 
       log.warn(`Disconnected — reason: ${reason}`);
 
