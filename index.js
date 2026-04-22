@@ -1,12 +1,9 @@
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import express from 'express';
-import pino from 'pino';
-import makeWASocket from '@whiskeysockets/baileys';
-import { useMultiFileAuthState, DisconnectReason, Browsers, makeCacheableSignalKeyStore } from '@whiskeysockets/baileys';
+const fs = require('fs');
+const path = require('path');
+const express = require('express');
+const pino = require('pino');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, Browsers, makeCacheableSignalKeyStore } = require('@whiskeysockets/baileys');
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SESSION_DIR = path.join(__dirname, 'session');
 
 const PREFIX = process.env.PREFIX || '.';
@@ -49,7 +46,7 @@ async function loadCommands() {
   const files = fs.readdirSync(dir).filter(f => f.endsWith('.js'));
 
   for (const file of files) {
-    const mod = await import(`./commands/${file}`);
+    const mod = require(`./commands/${file}`);
     const cmd = mod.default;
     if (cmd?.name && typeof cmd.execute === 'function') {
       commands.set(cmd.name.toLowerCase(), cmd);
@@ -172,6 +169,6 @@ function extractText(m) {
   );
 }
 
-await loadCommands();
+loadCommands();
 startKeepAliveServer();
-await startBot();
+startBot();
