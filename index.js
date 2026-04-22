@@ -136,22 +136,37 @@ async function startBot() {
   sock.ev.on('creds.update', saveCreds);
 
   sock.ev.on('messages.upsert', async ({ messages, type }) => {
+    console.log('📩 Message received! Type:', type);
+    
     if (type !== 'notify') return;
 
     for (const m of messages) {
+      console.log('📱 From:', m.key.remoteJid);
+      console.log('📝 From me?', m.key.fromMe);
+      
       if (!m.message || m.key.fromMe) continue;
 
       const body = extractText(m);
+      console.log('💬 Message text:', body);
+      console.log('🔍 Starts with prefix?', body.startsWith(PREFIX));
+      
       if (!body.startsWith(PREFIX)) continue;
 
       const [rawCmd, ...args] = body.slice(PREFIX.length).trim().split(/\s+/);
       const cmdName = rawCmd.toLowerCase();
+      
+      console.log('🎯 Command detected:', cmdName);
 
       const cmd = commands.get(cmdName);
-      if (!cmd) continue;
+      if (!cmd) {
+        console.log('❌ Command not found:', cmdName);
+        continue;
+      }
 
+      console.log('✅ Executing command:', cmdName);
       try {
         await cmd.execute(sock, m, args, PREFIX, BOT_NAME);
+        console.log('✅ Command executed successfully');
       } catch (err) {
         log.error(`Error in command "${cmdName}":`, err.message);
       }
