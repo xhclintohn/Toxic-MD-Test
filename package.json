@@ -1,15 +1,14 @@
 {
   "name": "ToxicMD",
   "version": "1.0.0",
-  "description": "WhatsApp bot",
+  "type": "module",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
-    "@whiskeysockets/baileys": "npm:wileys",
+    "@whiskeysockets/baileys": "latest",
     "express": "^4.18.2",
-    "jimp": "latest",
     "pino": "^8.21.0"
   },
   "engines": {
