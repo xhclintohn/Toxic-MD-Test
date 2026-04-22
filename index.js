@@ -3,11 +3,16 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import express from 'express';
 import pino from 'pino';
-import makeWASocket from '@whiskeysockets/baileys';
-import { useMultiFileAuthState } from '@whiskeysockets/baileys';
-import { DisconnectReason } from '@whiskeysockets/baileys';
-import { Browsers } from '@whiskeysockets/baileys';
-import { makeCacheableSignalKeyStore } from '@whiskeysockets/baileys';
+import toxicConnect, {
+  useMultiFileAuthState,
+  DisconnectReason,
+  makeInMemoryStore,
+  downloadContentFromMessage,
+  jidDecode,
+  getContentType,
+  makeCacheableSignalKeyStore,
+  Browsers,
+} from '@whiskeysockets/baileys';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SESSION_DIR = path.join(__dirname, 'session');
@@ -91,7 +96,7 @@ async function startBot() {
 
   log.info(`Connecting — Baileys v${version.join('.')} …`);
 
-  const sock = makeWASocket({
+  const sock = toxicConnect({
     version,
     logger: baileysLogger,
     printQRInTerminal: false,
