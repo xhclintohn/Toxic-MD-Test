@@ -3,7 +3,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import express from 'express';
 import pino from 'pino';
-import * as baileys from '@whiskeysockets/baileys';
+import makeWASocket from '@whiskeysockets/baileys';
+import { useMultiFileAuthState, DisconnectReason, Browsers, makeCacheableSignalKeyStore } from '@whiskeysockets/baileys';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SESSION_DIR = path.join(__dirname, 'session');
@@ -18,11 +19,6 @@ const log = {
   warn: (...a) => console.warn('[WARN]', ...a),
   error: (...a) => console.error('[ERR]', ...a),
 };
-
-console.log('BAILEYS EXPORTS:', Object.keys(baileys));
-console.log('DEFAULT EXPORT:', baileys.default);
-console.log('MAKEWASOCKET:', baileys.makeWASocket);
-console.log('TOXICCONNECT:', baileys.toxicConnect);
 
 const baileysLogger = pino({ level: 'fatal' }).child({ level: 'fatal' });
 const baileysKeyLog = pino().child({ level: 'silent', stream: 'store' });
@@ -85,29 +81,22 @@ async function startBot() {
     process.exit(1);
   }
 
-  const makeWASocketFunc = baileys.default || baileys.makeWASocket || baileys.toxicConnect;
-  
-  if (!makeWASocketFunc || typeof makeWASocketFunc !== 'function') {
-    log.error('No socket function found. Available exports:', Object.keys(baileys));
-    process.exit(1);
-  }
-
-  const { state, saveCreds } = await baileys.useMultiFileAuthState(SESSION_DIR);
+  const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
 
   const versionRes = await fetch('https://raw.githubusercontent.com/WhiskeySockets/Baileys/master/src/Defaults/baileys-version.json');
   const { version } = await versionRes.json();
 
   log.info(`Connecting — Baileys v${version.join('.')} …`);
 
-  const sock = makeWASocketFunc({
+  const sock = makeWASocket({
     version,
     logger: baileysLogger,
     printQRInTerminal: false,
     auth: {
       creds: state.creds,
-      keys: baileys.makeCacheableSignalKeyStore(state.keys, baileysKeyLog),
+      keys: makeCacheableSignalKeyStore(state.keys, baileysKeyLog),
     },
-    browser: baileys.Browsers?.macOS('Chrome') || ['Toxic-MD', 'Chrome', '1.0.0'],
+    browser: Browsers.macOS('Chrome'),
     syncFullHistory: false,
     generateHighQualityLinkPreview: true,
     shouldIgnoreJid: jid => !!jid?.endsWith('@g.us'),
@@ -132,8 +121,8 @@ async function startBot() {
 
     if (connection === 'close') {
       const code = lastDisconnect?.error?.output?.statusCode;
-      const reason = baileys.DisconnectReason?.[code] ?? code;
-      const loggedOut = code === baileys.DisconnectReason?.loggedOut;
+      const reason = DisconnectReason[code] ?? code;
+      const loggedOut = code === DisconnectReason.loggedOut;
 
       log.warn(`Disconnected — reason: ${reason}`);
 
