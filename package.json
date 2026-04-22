@@ -9,6 +9,7 @@
   "dependencies": {
     "@whiskeysockets/baileys": "npm:wileys",
     "express": "^4.18.2",
+    "jimp": "latest",
     "pino": "^8.21.0"
   },
   "engines": {
