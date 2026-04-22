@@ -17,6 +17,60 @@ const PREFIX = process.env.PREFIX || '.';
 const BOT_NAME = process.env.BOT_NAME || 'Toxic-MD';
 const PORT = parseInt(process.env.PORT || '3000', 10);
 
+const _noisyTokens = [
+  'closing session','sessionentry','registrationid','currentratchet',
+  'indexinfo','pendingprekey','ephemeralkeypair','lastremoteephemeralkey',
+  'rootkey','basekey','signalkey','signalprotocol','_chains','chains',
+  'chainkey','ratchet','cipher','decrypt','encrypt','prekey','signedkey',
+  'identitykey','sessionstate','keystore','senderkey','groupcipher',
+  'signalgroup','signalstore','signalrepository','signalprotocolstore',
+  'sessioncipher','sessionbuilder','senderkeystore','senderkeydistribution',
+  'keyexchange','<buffer','05 ','0x','pubkey','privkey',
+  'connection.update','creds.update','presence.update','chat.update',
+  'message.receipt.update','message.update',
+  'failed to decrypt','received error','sessionerror','bad mac',
+  'stream errored',
+  '[asm-debug]',
+  'interactive send:','native_flow','tag: \'biz\'',
+  'app state resync','syncing critical app state',
+  '[dotenv'
+];
+
+const originalConsoleLog = console.log;
+const originalConsoleWarn = console.warn;
+const originalConsoleError = console.error;
+const originalConsoleInfo = console.info;
+
+function shouldFilter(message) {
+  if (!message) return false;
+  const msgStr = String(message);
+  return _noisyTokens.some(token => msgStr.includes(token));
+}
+
+console.log = function(...args) {
+  if (!shouldFilter(args[0])) {
+    originalConsoleLog.apply(console, args);
+  }
+};
+
+console.warn = function(...args) {
+  if (!shouldFilter(args[0])) {
+    originalConsoleWarn.apply(console, args);
+  }
+};
+
+console.error = function(...args) {
+  if (!shouldFilter(args[0])) {
+    originalConsoleError.apply(console, args);
+  }
+};
+
+console.info = function(...args) {
+  if (!shouldFilter(args[0])) {
+    originalConsoleInfo.apply(console, args);
+  }
+};
+
 const log = {
   info: (...a) => console.log('[INFO]', ...a),
   success: (...a) => console.log('[OK]', ...a),
