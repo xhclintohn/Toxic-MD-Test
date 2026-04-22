@@ -1,13 +1,9 @@
-// commands/ping.js
-// Usage: .ping
-
-export default {
+module.exports = {
   name: 'ping',
 
   async execute(sock, m) {
     const jid = m.key.remoteJid;
     const start = Date.now();
-
 
     await Promise.resolve();
 
@@ -28,7 +24,6 @@ ${bar}` },
     });
   },
 };
-
 
 function buildBar(ms) {
   const pct = Math.max(0, Math.min(100, Math.round(100 - (ms / 10))));
