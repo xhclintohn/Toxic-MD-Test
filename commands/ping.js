@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   name: 'ping',
 
   async execute(sock, m) {
@@ -13,9 +13,7 @@ module.exports = {
 
     await sock.sendMessage(
       jid,
-      { text: ` *Pong!*
-⚡ Latency: *${latency}ms*
-${bar}` },
+      { text: ` *Pong!*\n⚡ Latency: *${latency}ms*\n${bar}` },
       { quoted: m }
     );
 
