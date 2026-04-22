@@ -1,18 +1,18 @@
 {
-    "name": "toxic-md",
-    "version": "3.0.0",
-    "description": "Minimal WhatsApp bot",
-    "main": "index.js",
-    "scripts": {
-        "start": "node index.js"
-    },
-    "engines": {
-        "node": ">=20"
-    },
-    "dependencies": {
-        "@hapi/boom": "^10.0.1",
-        "@whiskeysockets/baileys": "latest",
-        "express": "^4.21.0",
-        "pino": "^8.19.0"
-    }
+  "name": "ToxicMD",
+  "version": "1.0.0",
+  "description": "Minimal WhatsApp bot — session ID auth, single ping command for testing purposes.",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "npm:toxic-baileys@latest",
+    "express": "^4.18.2",
+    "pino": "^8.21.0"
+  },
+  "engines": {
+    "node": "20.x"
+  }
 }
