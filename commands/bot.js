@@ -1,18 +1,18 @@
-import { generateWAMessageFromContent } from 'toxic-baileys'; // Your fork, not upstream
+import { generateWAMessageFromContent } from '@whiskeysockets/baileys';
 
 export default {
     name: 'bot',
 
     async execute(sock, m) {
         const jid = m.key.remoteJid;
-        const prefix = '.'; // Change this to your actual prefix
+        const prefix = '.'; 
 
-        // React to the message
+     
         await sock.sendMessage(jid, {
             react: { text: '🤖', key: m.key }
         });
 
-        const botname = 'MyBot'; // Replace with your actual bot name
+        const botname = 'MyBot'; 
 
         const msg = generateWAMessageFromContent(
             jid,
@@ -50,7 +50,7 @@ export default {
             }
         );
 
-        // ✅ Fix #3 - null guard
+        // ✅ Fix #3
         if (msg.message) {
             await sock.relayMessage(jid, msg.message, { messageId: msg.key.id });
         }
