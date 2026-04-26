@@ -1,4 +1,4 @@
-const { generateWAMessageFromContent } = require('@whiskeysockets/baileys');
+import { generateWAMessageFromContent } from '@whiskeysockets/baileys';
 
 export default {
     name: 'bot',
@@ -12,7 +12,7 @@ export default {
             react: { text: '🤖', key: m.key }
         });
 
-        const botname = 'MyBot'; // Replace with your bot name or import
+        const botname = 'MyBot'; // Replace with your actual bot name
 
         const msg = generateWAMessageFromContent(
             jid,
