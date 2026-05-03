@@ -157,7 +157,6 @@ async function startBot() {
     browser: Browsers.macOS('Chrome'),
     syncFullHistory: false,
     generateHighQualityLinkPreview: true,
-    shouldIgnoreJid: jid => !!jid?.endsWith('@g.us'),
     getMessage: async () => undefined,
     markOnlineOnConnect: true,
     connectTimeoutMs: 120000,
