@@ -13,7 +13,7 @@ export default {
         await sock.sendMessage(jid, {
             interactiveMessage: {
                 body: {
-                    text: `◈━━━━━━━━━━━━━━━━◈\n│❒ Yo! You actually bothered to check the bot? 🙄\n│❒ ${botname} is active 24/7, unlike your brain cells. 🧠⚡\n│❒ Stop wasting my time and pick something useful below.\n◈━━━━━━━━━━━━━━━━◈`
+                    text: `◈━━━━━━━━━━━━━━━━◈\n│❒ Bot is alive 🟩\n│❒ ${botname} is active 24/7, unlike your brain cells😂😂\n│❒ Stop wasting my time and pick something useful below.\n◈━━━━━━━━━━━━━━━━◈`
                 },
                 footer: { text: `> Powered by ${botname}` },
                 nativeFlowMessage: {
@@ -25,10 +25,10 @@ export default {
                                 sections: [
                                     {
                                         rows: [
-                                            { title: '📱 Menu', description: 'Get all commands', id: `${prefix}menu` },
+                                            { title: 'Menu', description: 'Get all commands', id: `${prefix}menu` },
                                             { title: '⚙ Settings', description: 'Bot settings', id: `${prefix}settings` },
-                                            { title: '🏓 Ping', description: 'Check bot speed', id: `${prefix}ping` },
-                                            { title: '🔄 Update', description: 'Check for updates', id: `${prefix}update` },
+                                            { title: 'Ping', description: 'Check bot speed', id: `${prefix}ping` },
+                                            { title: 'Update', description: 'Check for updates', id: `${prefix}update` },
                                         ],
                                     },
                                 ],
